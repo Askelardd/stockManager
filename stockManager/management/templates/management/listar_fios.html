@@ -17,7 +17,6 @@
                 <th class="py-3 px-6 text-left">Estoque Mínimo</th>
                 <th class="py-3 px-6 text-left">Quantidade</th>
                 <th class="py-3 px-6 text-left">Fornecedor</th>
-                <th class="py-3 px-6 text-left">Data Adicionada</th>
                 <th class="py-3 px-6 text-left">Última Atualização</th>
                 <th class="py-3 px-6 text-left">Atualizado por</th>
                 <th class="py-3 px-6 text-center">Ações</th>
@@ -55,9 +54,6 @@
                 </td>
                 <td class="py-3 px-6 text-left">
                     {{ fio.fornecedor.nome }}
-                </td>
-                <td class="py-3 px-6 text-left">
-                    {{ fio.date_added|date:"d/m/Y H:i" }}
                 </td>
                 <td class="py-3 px-6 text-left">
                     {{ fio.updated_at|date:"d/m/Y H:i" }}
