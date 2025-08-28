@@ -1,9 +1,15 @@
-{% extends 'management/base.html' %}
-{% load static %}
+    <!DOCTYPE html>
+    <html lang="pt">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Página Inicial</title>
+    <body>
 
-{% block title %}Login{% endblock %}
+    {% extends 'management/base.html' %}
 
-<body>
+    {% block title %}Página Inicial{% endblock %}
+
     {% block content %}
         <h1 class="text-5xl text-white font-bold mb-6">Bem-vindo</h1>
         <p class="text-white/90 mb-8">Escolha o utilizador para a produção.</p>
@@ -37,9 +43,9 @@
 
         <!-- Informações adicionais -->
         <div class="text-center">
-            <a class="text-white/70 text-sm mb-4">
+            <p class="text-white/70 text-sm mb-4">
                 Não tem uma conta?
-            </a>
+            </p>
             <a href="#" class="text-white font-medium hover:text-white/80 transition-colors underline decoration-2 underline-offset-4">
                 Criar conta
             </a>

@@ -1,18 +1,36 @@
-from django.shortcuts import render
 from django.contrib.auth.models import User
 from .models import Po, Fornecedor , updateFios, updatePo, Fios
-from django.shortcuts import render, get_object_or_404, redirect
-
+from django.contrib.auth import authenticate, login as auth_login, logout
+from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.models import User
 
 def index(request):
     users = User.objects.all()
     return render(request, 'management/index.html', {'users': users})
 
-def login(request, user_id):
+
+def user_logout(request):
+    logout(request)
+    messages.success(request, "Saiu da sua conta com sucesso!")
+    return redirect('login', 0)
+
+def login_view(request, user_id=None):
+    user = get_object_or_404(User, id=user_id)
+
     if request.method == 'POST':
-        # Handle login logic here
-        pass
-    return render(request, 'management/login.html', {'user_id': user_id})
+        password = request.POST.get('password', '')
+
+        auth_user = authenticate(request, username=user.username, password=password)
+        if auth_user is not None:
+            auth_login(request, auth_user)  # cria a sessão
+            messages.success(request, f'Bem-vindo, {auth_user.username}!')
+            # PRG: redireciona para evitar repost em refresh
+            return redirect('index')  # ou outra página, por ex. 'listar_pos'
+        else:
+            messages.error(request, 'Palavra-passe inválida.')
+
+    return render(request, 'management/login.html', {'user': user})
 
 def listar_pos(request):
     if request.method == 'POST':
