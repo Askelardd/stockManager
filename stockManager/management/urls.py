@@ -16,6 +16,8 @@ urlpatterns = [
     path('fio/<int:fio_id>/adicionar/', views.adicionarMaisde1Fio, name='adicionar_fio'),
     path('fio/<int:fio_id>/remover/', views.removerFio, name='remover_fio'),
     path('listar_update_fios/', views.listar_updates_fios, name='listar_update_fios'),
+    path('po/saidas/', views.filtrar_po_saidas, name='filtrar_po_saidas'),
+    path('po/entradas/', views.filtrar_po_entradas, name='filtrar_po_entradas'),
 
     
 ]

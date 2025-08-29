@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Fornecedor, Po, Fios, updatePo, updateFios 
+from .models import Fornecedor, Po, Fios, updatePo, updateFios, poSaidas, poEntradas
 
 # Register your models here.
 @admin.register(Fornecedor)
@@ -31,3 +31,14 @@ class updatePoAdmin(admin.ModelAdmin):
     search_fields = ('po__product', 'user__username')
     list_filter = ('action', 'user', 'date_updated')
 
+@admin.register(poSaidas)
+class poSaidasAdmin(admin.ModelAdmin):
+    list_display = ('po', 'user', 'quantity_used')  # Removed 'date_added'
+    search_fields = ('po__product', 'user__username')
+    list_filter = ('user',)  # Removed 'date_added'
+
+@admin.register(poEntradas)
+class poEntradasAdmin(admin.ModelAdmin):
+    list_display = ('po', 'user', 'quantity_added')  # Removed 'date_added'
+    search_fields = ('po__product', 'user__username')
+    list_filter = ('user',)  # Removed 'date_added'

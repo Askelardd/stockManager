@@ -96,3 +96,40 @@ class updatePo(models.Model):
 
     def __str__(self):
         return f"{self.po} {self.get_action_display()} {self.date_updated}"
+
+class poSaidas(models.Model):
+    po = models.ForeignKey(Po, on_delete=models.CASCADE)
+    quantity_used = models.PositiveIntegerField()
+    date_used = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} usou {self.quantity_used} de {self.po} em {self.date_used}"
+
+class poEntradas(models.Model):
+    po = models.ForeignKey(Po, on_delete=models.CASCADE)
+    quantity_added = models.PositiveIntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} adicionou {self.quantity_added} de {self.po} em {self.date_added}"
+    
+
+class fioSaidas(models.Model):
+    fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
+    quantity_used = models.PositiveIntegerField()
+    date_used = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} usou {self.quantity_used} de {self.fio} em {self.date_used}"
+
+class fioEntradas(models.Model):
+    fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
+    quantity_added = models.PositiveIntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} adicionou {self.quantity_added} de {self.fio} em {self.date_added}"
