@@ -18,6 +18,8 @@ urlpatterns = [
     path('listar_update_fios/', views.listar_updates_fios, name='listar_update_fios'),
     path('po/saidas/', views.filtrar_po_saidas, name='filtrar_po_saidas'),
     path('po/entradas/', views.filtrar_po_entradas, name='filtrar_po_entradas'),
-
-    
+    path('fios/trafilar/', views.trafilar_fio, name='trafilar_fio'),
+    path('fios/criar-rapido/', views.criar_fio_rapido, name='criar_fio_rapido'),
+    path('fios/historico/', views.historico_trefilagens, name='historico_trefilagens'),
+    path('novo_fio/', views.novo_fio, name='novo_fio'),
 ]

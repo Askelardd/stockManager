@@ -1,0 +1,93 @@
+{% extends "management/base.html" %}
+
+{% block title %}Novo Fio{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8">
+
+  <h1 class="text-2xl font-bold tracking-tight text-gray-900 mb-4">Criar Novo Fio</h1>
+
+  {% if messages %}
+    <div class="space-y-2 mb-4">
+      {% for message in messages %}
+        <div class="rounded-lg px-4 py-3 text-sm
+            {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% endif %}
+            {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% endif %}
+            {% if message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% endif %}
+            {% if message.tags == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl p-6">
+    <form method="post" class="space-y-5">
+      {% csrf_token %}
+
+      <div>
+        <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Tamanho (mm)</label>
+        <input type="number" step="0.0001" min="0" id="size" name="size"
+               value="{{ form.size|default:'' }}"
+               class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+        <p class="text-xs text-gray-500 mt-1">Ex.: 0.3200</p>
+      </div>
+
+      <div>
+        <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">Peso (g)</label>
+        <input type="number" step="0.01" min="0" id="weight" name="weight"
+               value="{{ form.weight|default:'0' }}"
+               class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+        <p class="text-xs text-gray-500 mt-1">Se for criar vazio, deixe 0.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantidade (unid.)</label>
+          <input type="number" min="0" id="quantity" name="quantity"
+                 value="{{ form.quantity|default:'0' }}"
+                 class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+        </div>
+
+        <div>
+          <label for="min_stock" class="block text-sm font-medium text-gray-700 mb-1">Estoque mínimo</label>
+          <input type="number" min="0" id="min_stock" name="min_stock"
+                 value="{{ form.min_stock|default:'0' }}"
+                 class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+        </div>
+      </div>
+
+      <div>
+        <label for="material" class="block text-sm font-medium text-gray-700 mb-1">Material</label>
+        <select id="material" name="material"
+                class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+          <option value="" disabled {% if not form.material %}selected{% endif %}>Selecione…</option>
+          {% for value, label in material_choices %}
+            <option value="{{ value }}" {% if form.material == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="fornecedor" class="block text-sm font-medium text-gray-700 mb-1">Fornecedor</label>
+        <select id="fornecedor" name="fornecedor"
+                class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+          <option value="" disabled {% if not form.fornecedor %}selected{% endif %}>Selecione…</option>
+          {% for f in fornecedores %}
+            <option value="{{ f.id }}" {% if form.fornecedor == f.id|stringformat:"s" %}selected{% endif %}>
+              {{ f.nome }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="pt-2 flex items-center justify-end gap-3">
+        <a href="javascript:history.back()" class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">Cancelar</a>
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700">
+          Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
