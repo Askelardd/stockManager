@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Fornecedor, Po, Fios, updatePo, updateFios, poSaidas, poEntradas
+from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, updatePo, updateFios, poSaidas, poEntradas 
 
 # Register your models here.
 @admin.register(Fornecedor)
@@ -42,3 +42,15 @@ class poEntradasAdmin(admin.ModelAdmin):
     list_display = ('po', 'user', 'quantity_added')  # Removed 'date_added'
     search_fields = ('po__product', 'user__username')
     list_filter = ('user',)  # Removed 'date_added'
+
+@admin.register(FioTransformacao)
+class FioTransformacaoAdmin(admin.ModelAdmin):
+    list_display = ('origem', 'total_transferido', 'peso_origem_antes', 'peso_origem_depois', 'user', 'created_at')
+    search_fields = ('origem__size', 'user__username')
+    list_filter = ('created_at', 'user')
+
+@admin.register(FioTransformacaoItem)
+class FioTransformacaoItemAdmin(admin.ModelAdmin):
+    list_display = ('transformacao', 'destino', 'peso_adicionado')
+    search_fields = ('destino__size', 'transformacao__origem__size')
+    list_filter = ('transformacao__created_at',)

@@ -133,3 +133,22 @@ class fioEntradas(models.Model):
 
     def __str__(self):
         return f"{self.user.username} adicionou {self.quantity_added} de {self.fio} em {self.date_added}"
+    
+class FioTransformacao(models.Model):
+    origem = models.ForeignKey('Fios', on_delete=models.PROTECT, related_name='transformacoes_origem')
+    total_transferido = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    peso_origem_antes = models.DecimalField(max_digits=12, decimal_places=2)
+    peso_origem_depois = models.DecimalField(max_digits=12, decimal_places=2)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Transformação #{self.pk} - {self.origem.size}mm por {self.user or 'Sistema'}"
+
+class FioTransformacaoItem(models.Model):
+    transformacao = models.ForeignKey(FioTransformacao, on_delete=models.CASCADE, related_name='itens')
+    destino = models.ForeignKey('Fios', on_delete=models.PROTECT, related_name='transformacoes_destino')
+    peso_adicionado = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.peso_adicionado}g → {self.destino.size}mm (T#{self.transformacao_id})"
