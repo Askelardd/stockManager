@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, updatePo, updateFios, poSaidas, poEntradas 
+from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, CategoriaProduto, updatePo, updateFios, poSaidas
+from .models import poEntradas, Stock, StockEntradas, StockSaidas, UpdateStock, Agulhas, AgulhasEntradas, AgulhasSaidas, UpdateAgulhas
 
 # Register your models here.
 @admin.register(Fornecedor)
@@ -54,3 +55,56 @@ class FioTransformacaoItemAdmin(admin.ModelAdmin):
     list_display = ('transformacao', 'destino', 'peso_adicionado')
     search_fields = ('destino__size', 'transformacao__origem__size')
     list_filter = ('transformacao__created_at',)
+
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    list_display = ('product', 'quantity', 'min_stock', 'fornecedor', 'date_added', 'updated_at')
+    search_fields = ('product',)
+    list_filter = ('fornecedor', 'date_added', 'updated_at')
+
+@admin.register(StockEntradas)
+class StockEntradasAdmin(admin.ModelAdmin):
+    list_display = ('stock', 'quantity_added', 'date_added', 'user')
+    search_fields = ('stock__product', 'user__username')
+    list_filter = ('date_added', 'user')
+
+@admin.register(StockSaidas)
+class StockSaidasAdmin(admin.ModelAdmin):
+    list_display = ('stock', 'quantity_removed', 'date_removed', 'user')
+    search_fields = ('stock__product', 'user__username')
+    list_filter = ('date_removed', 'user')
+
+@admin.register(CategoriaProduto)
+class categoriaProdutoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'descricao')
+    search_fields = ('nome',)
+
+@admin.register(UpdateStock)
+class UpdateStockAdmin(admin.ModelAdmin):
+    list_display = ('stock', 'previous_quantity', 'new_quantity', 'date_updated', 'action', 'user')
+    search_fields = ('stock__product', 'user__username')
+    list_filter = ('action', 'user', 'date_updated')
+
+@admin.register(Agulhas)
+class AgulhasAdmin(admin.ModelAdmin):
+    list_display = ('tipo', 'tamanho', 'quantidade', 'fornecedor', 'user')
+    search_fields = ('tipo', 'fornecedor__nome')
+    list_filter = ('fornecedor',)
+
+@admin.register(AgulhasEntradas)
+class AgulhasEntradasAdmin(admin.ModelAdmin):
+    list_display = ('agulha', 'quantity_added', 'date_added', 'user')
+    search_fields = ('agulha__tipo', 'user__username')
+    list_filter = ('date_added', 'user')
+
+@admin.register(AgulhasSaidas)
+class AgulhasSaidasAdmin(admin.ModelAdmin):
+    list_display = ('agulha', 'quantity_removed', 'date_removed', 'user')
+    search_fields = ('agulha__tipo', 'user__username')
+    list_filter = ('date_removed', 'user')
+
+@admin.register(UpdateAgulhas)
+class UpdateAgulhasAdmin(admin.ModelAdmin):
+    list_display = ('agulha', 'previous_quantity', 'new_quantity', 'date_updated', 'action', 'user')
+    search_fields = ('agulha__tipo', 'user__username')
+    list_filter = ('action', 'date_updated', 'user')

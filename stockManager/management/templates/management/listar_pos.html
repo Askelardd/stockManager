@@ -7,32 +7,6 @@
 
 <h1 class="text-2xl font-bold text-white mb-6">Lista de Pos</h1>
 
-<form method="GET" class="mb-6 flex items-center flex-wrap gap-4">
-    <label class="text-black font-semibold">
-        Filtro por data:
-        <select name="filtro_data" id="filtro_data" class="ml-2 px-3 py-2 rounded border border-gray-300">
-            <option value="">Sem filtro</option>
-            <option value="hoje" {% if filtro_data == 'hoje' %}selected{% endif %}>Hoje</option>
-            <option value="ontem" {% if filtro_data == 'ontem' %}selected{% endif %}>Ontem</option>
-            <option value="semana" {% if filtro_data == 'semana' %}selected{% endif %}>Esta semana</option>
-            <option value="mes" {% if filtro_data == 'mes' %}selected{% endif %}>Este mês</option>
-            <option value="ano" {% if filtro_data == 'ano' %}selected{% endif %}>Este ano</option>
-            <option value="entre" {% if filtro_data == 'entre' %}selected{% endif %}>Entre datas</option>
-        </select>
-    </label>
-
-    <label class="text-white font-semibold" id="data_inicio_label" style="display:none;">
-        Início:
-        <input type="date" name="data_inicio" value="{{ data_inicio }}" class="ml-2 px-3 py-2 rounded border border-gray-300">
-    </label>
-
-    <label class="text-white font-semibold" id="data_fim_label" style="display:none;">
-        Fim:
-        <input type="date" name="data_fim" value="{{ data_fim }}" class="ml-2 px-3 py-2 rounded border border-gray-300">
-    </label>
-
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Aplicar</button>
-</form>
 
 <div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
     <table id="poTable" class="min-w-full table-auto">
