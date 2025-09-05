@@ -1,0 +1,199 @@
+{% extends "management/base.html" %}
+
+{% block title %}Histórico de Agulhas{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+
+  <div class="flex items-center justify-between gap-3 flex-wrap mb-6">
+    <h1 class="text-2xl font-bold tracking-tight text-gray-900">Histórico de Agulhas</h1>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl p-5 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+      <div>
+        <label for="filtro_data" class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+        <select id="filtro_data" name="filtro_data" onchange="toggleCustomDates()"
+                class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+          <option value="hoje"   {% if filtro_data == 'hoje' %}selected{% endif %}>Hoje</option>
+          <option value="ontem"  {% if filtro_data == 'ontem' %}selected{% endif %}>Ontem</option>
+          <option value="semana" {% if filtro_data == 'semana' %}selected{% endif %}>Semana atual</option>
+          <option value="mes"    {% if filtro_data == 'mes' %}selected{% endif %}>Mês atual</option>
+          <option value="ano"    {% if filtro_data == 'ano' %}selected{% endif %}>Ano atual</option>
+          <option value="entre"  {% if filtro_data == 'entre' %}selected{% endif %}>Entre datas</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="data_inicio" class="block text-sm font-medium text-gray-700 mb-1">Data início</label>
+        <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}"
+               class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label for="data_fim" class="block text-sm font-medium text-gray-700 mb-1">Data fim</label>
+        <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}"
+               class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">Utilizador</label>
+        <select id="user_id" name="user_id"
+                class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+          <option value="0" {% if not user_id or user_id == 0 %}selected{% endif %}>Todos</option>
+          {% for u in users %}
+            <option value="{{ u.id }}" {% if user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+        <select id="tipo" name="tipo"
+                class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+          <option value="todos"   {% if tipo == 'todos' %}selected{% endif %}>Todos</option>
+          <option value="entradas" {% if tipo == 'entradas' %}selected{% endif %}>Entradas</option>
+          <option value="saidas"   {% if tipo == 'saidas' %}selected{% endif %}>Saídas</option>
+        </select>
+      </div>
+
+      <div class="md:col-span-5 flex items-center gap-3 pt-1">
+        <button type="submit"
+                class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700">
+          Aplicar
+        </button>
+        <a href="{% url 'historico_agulhas' %}"
+           class="inline-flex items-center rounded-lg border border-blue-600 px-4 py-2 text-blue-700 font-semibold hover:bg-blue-50">
+          Limpar
+        </a>
+        <p class="text-sm text-gray-500 ml-auto">Para “Entre datas”, preencha início e fim.</p>
+      </div>
+    </form>
+  </div>
+
+  <!-- Métricas -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white ring-1 ring-gray-100 rounded-2xl p-5">
+      <p class="text-sm text-gray-500">Total Entradas</p>
+      <p class="text-2xl font-bold text-emerald-700">+{{ total_entradas }}</p>
+    </div>
+    <div class="bg-white ring-1 ring-gray-100 rounded-2xl p-5">
+      <p class="text-sm text-gray-500">Total Saídas</p>
+      <p class="text-2xl font-bold text-rose-700">-{{ total_saidas }}</p>
+    </div>
+    <div class="bg-white ring-1 ring-gray-100 rounded-2xl p-5">
+      <p class="text-sm text-gray-500">Saldo do período</p>
+      <p class="text-2xl font-bold text-gray-900">{{ saldo_total }}</p>
+    </div>
+  </div>
+
+  <!-- Conteúdo -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Tabela unificada -->
+    <div class="lg:col-span-2 bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Registos</h2>
+        {% if total_listado != None %}
+          <span class="text-sm text-gray-600">Total listado: <strong>{{ total_listado }}</strong></span>
+        {% endif %}
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="py-3 px-3 text-left text-xs font-semibold uppercase text-gray-600">Data</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Tipo</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Agulha</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Tamanho (mm)</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Qtd</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Stock Atual</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Utilizador</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            {% for r in registos %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-3 py-3 text-sm">{{ r.date|date:"Y-m-d H:i" }}</td>
+              <td class="px-3 py-3 text-sm">
+                {% if r.direction == 'entrada' %}
+                  <span class="bg-emerald-50 text-emerald-700 rounded-full px-2.5 py-0.5 text-xs font-semibold">Entrada</span>
+                {% else %}
+                  <span class="bg-rose-50 text-rose-700 rounded-full px-2.5 py-0.5 text-xs font-semibold">Saída</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-3 text-sm">{{ r.agulha_tipo }}</td>
+              <td class="px-3 py-3 text-sm">{{ r.agulha_tamanho|floatformat:2 }}</td>
+              <td class="px-3 py-3 text-sm font-semibold {% if r.direction == 'entrada' %}text-emerald-700{% else %}text-rose-700{% endif %}">
+                {% if r.direction == 'entrada' %}+{% else %}-{% endif %}{{ r.quantity }}
+              </td>
+              <td class="px-3 py-3 text-sm">{{ r.current_stock|default:"-" }}</td>
+              <td class="px-3 py-3 text-sm">{{ r.username|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="py-5 text-center text-sm text-gray-500">Sem registos.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resumo por Tipo + Tamanho -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-900">Resumo por Agulha</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="py-3 px-3 text-left text-xs font-semibold uppercase text-gray-600">Agulha</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Tamanho (mm)</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Entradas</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saídas</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saldo</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            {% for item in resumo_por_agulha %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-3 py-3 text-sm">{{ item.tipo }}</td>
+              <td class="px-3 py-3 text-sm">{{ item.tamanho|floatformat:2 }}</td>
+              <td class="px-3 py-3 text-sm font-semibold text-emerald-700">+{{ item.entradas }}</td>
+              <td class="px-3 py-3 text-sm font-semibold text-rose-700">-{{ item.saidas }}</td>
+              <td class="px-3 py-3 text-sm font-semibold">{{ item.saldo }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="py-5 text-center text-sm text-gray-500">Sem dados.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleCustomDates() {
+  const sel = document.getElementById('filtro_data').value;
+  const di = document.getElementById('data_inicio');
+  const df = document.getElementById('data_fim');
+  const isCustom = sel === 'entre';
+  di.disabled = !isCustom;
+  df.disabled = !isCustom;
+  [di, df].forEach(el => {
+    if (isCustom) { el.classList.remove('bg-gray-100','cursor-not-allowed'); }
+    else { el.classList.add('bg-gray-100','cursor-not-allowed'); }
+  });
+}
+toggleCustomDates();
+</script>
+{% endblock %}
