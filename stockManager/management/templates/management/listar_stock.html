@@ -6,6 +6,11 @@
 {% block content %}
 <h1 class="text-2xl font-bold text-white mb-6">Lista de stock</h1>
 
+<div class="flex justify-between items-center mb-4">
+  <input type="text" id="searchInput" placeholder="Pesquisar fio..."
+         class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
+</div>
+
 <div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
   <table id="stockTable" class="min-w-full table-auto">
     <thead>
@@ -88,4 +93,18 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  const filter = this.value.toLowerCase();
+  const rows = document.querySelectorAll('#stockTable tbody tr');
+
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
+});
+</script>
 {% endblock %}

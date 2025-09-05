@@ -7,6 +7,13 @@
 
 <h1 class="text-2xl font-bold text-white mb-6">Lista de Fios</h1>
 
+
+<div class="flex justify-between items-center mb-4">
+  <input type="text" id="searchInput" placeholder="Pesquisar fio..."
+         class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
+</div>
+
+
 <div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
     <table id="fiosTable" class="min-w-full table-auto">
         <thead>
@@ -24,7 +31,7 @@
         </thead>
         <tbody class="text-gray-600 text-sm font-light">
             {% for fio in fios %}
-            <tr class="border-b border-gray-200 hover:bg-gray-100">
+            <tr class="border-b border-gray-200 hover:bg-gray-100" data-search="{{ fio.get_material_display }} {{ fio.size }} {{ fio.weight }} {{ fio.min_stock }} {{ fio.quantity }} {{ fio.fornecedor.nome|default:'' }} {{ fio.user.username|default:'' }}">
                 <td class="py-3 px-6 text-left">
                     {{ fio.get_material_display }}
                 </td>
@@ -81,4 +88,18 @@
         </tbody>
     </table>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  const filter = this.value.toLowerCase();
+  const rows = document.querySelectorAll('#fiosTable tbody tr');
+
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
+});
+</script>
 {% endblock %}
