@@ -8,7 +8,7 @@
 <h1 class="text-2xl font-bold text-white mb-6">Lista de Pos</h1>
 
 <div class="flex justify-between items-center mb-4">
-  <input type="text" id="searchInput" placeholder="Pesquisar fio..."
+  <input type="text" id="searchInput" placeholder="Pesquisar Po..."
          class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
 </div>
 
@@ -63,35 +63,48 @@
         </tbody>
     </table>
 </div>
-<p>Total de pó usado no período: {{ quant_usada }}</p>
 
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- bloco do filtro de datas (só se existir no DOM) ---
   const filtroSelect = document.getElementById('filtro_data');
   const dataInicioLabel = document.getElementById('data_inicio_label');
   const dataFimLabel = document.getElementById('data_fim_label');
 
-  function toggleDateInputs() {
-    const selected = filtroSelect.value;
-    const show = selected === 'entre';
-    dataInicioLabel.style.display = show ? 'inline-block' : 'none';
-    dataFimLabel.style.display = show ? 'inline-block' : 'none';
+  if (filtroSelect && dataInicioLabel && dataFimLabel) {
+    function toggleDateInputs() {
+      const show = filtroSelect.value === 'entre';
+      dataInicioLabel.style.display = show ? 'inline-block' : 'none';
+      dataFimLabel.style.display = show ? 'inline-block' : 'none';
+    }
+    filtroSelect.addEventListener('change', toggleDateInputs);
+    toggleDateInputs();
   }
 
-  filtroSelect.addEventListener('change', toggleDateInputs);
-  window.addEventListener('DOMContentLoaded', toggleDateInputs);
-
-  document.getElementById('searchInput').addEventListener('keyup', function() {
-  const filter = this.value.toLowerCase();
+  // --- pesquisa na tabela ---
+  const searchInput = document.getElementById('searchInput');
   const rows = document.querySelectorAll('#poTable tbody tr');
 
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = text.includes(filter) ? '' : 'none';
-  });
+  function normalizar(str) {
+    return str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // ignora acentos
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const filtro = normalizar(searchInput.value.trim());
+      rows.forEach(row => {
+        const texto = normalizar(row.textContent);
+        row.style.display = texto.includes(filtro) ? '' : 'none';
+      });
+    });
+  }
 });
 </script>
 {% endblock %}

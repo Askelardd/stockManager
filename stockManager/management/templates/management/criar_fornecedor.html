@@ -1,0 +1,73 @@
+{% extends "management/base.html" %}
+
+{% block title %}Novo Fornecedor{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8">
+
+    <h1 class="text-2xl font-bold tracking-tight text-gray-900 mb-4">Criar Novo Fornecedor</h1>
+
+    {% if messages %}
+        <div class="space-y-2 mb-4">
+            {% for message in messages %}
+                <div class="rounded-lg px-4 py-3 text-sm
+                        {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% endif %}
+                        {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% endif %}
+                        {% if message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% endif %}
+                        {% if message.tags == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl p-6">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            <div>
+                <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                <input type="text" id="nome" name="nome" placeholder="Ex.: Fornecedor XYZ"
+                             value="{{ form.nome|default:'' }}"
+                             class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+            </div>
+
+            <div>
+                <label for="ref_fornecedor" class="block text-sm font-medium text-gray-700 mb-1">Referência do Fornecedor</label>
+                <input type="text" id="ref_fornecedor" name="ref_fornecedor" placeholder="Ex.: 12345678901234"
+                             value="{{ form.ref_fornecedor|default:'' }}"
+                             class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                <p class="text-sm text-gray-500">não obrigatorio</p>
+
+            </div>
+
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" id="email" name="email" placeholder="Ex.: fornecedor@email.com"
+                             value="{{ form.email|default:'' }}"
+                             class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                <p class="text-sm text-gray-500">não obrigatorio</p>
+
+            </div>
+
+            <div>
+                <label for="telefone" class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <input type="text" id="telefone" name="telefone" placeholder="Ex.: (11) 98765-4321"
+                             value="{{ form.telefone|default:'' }}"
+                             class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                <p class="text-sm text-gray-500">não obrigatorio</p>
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                    Criar Fornecedor
+                </button>
+
+                <button type="button" onclick="window.location.href='{% url 'main_menu' %}'" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

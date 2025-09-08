@@ -1,0 +1,53 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Editar Fornecedor{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-white mb-6">Editar Fornecedor</h1>
+
+<div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        
+        <div>
+            <label for="name" class="block text-gray-700 font-medium">Nome:</label>
+            <input type="text" id="name" name="nome" value="{{ fornecedor.nome }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+        </div>
+
+        <div>
+            <label for="ref" class="block text-gray-700 font-medium">Ref. Fornecedor:</label>
+            <input type="text" id="ref" name="ref_fornecedor" value="{{ fornecedor.ref_fornecedor }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+        </div>
+
+        <div>
+            <label for="email" class="block text-gray-700 font-medium">Email:</label>
+            <input type="email" id="email" name="email" value="{{ fornecedor.email }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+        </div>
+
+        <div>
+            <label for="phone" class="block text-gray-700 font-medium">Telefone:</label>
+            <input type="text" id="phone" name="telefone" value="{{ fornecedor.telefone }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm"> 
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded shadow">
+                Atualizar
+            </button>
+        </div>
+        
+    </form>
+
+    <div class="mt-4">
+        <a href="{% url 'listar_fornecedores' %}"
+           class="text-blue-500 hover:text-blue-600 font-medium">
+            Voltar para a lista de fornecedores
+        </a>
+    </div>
+</div>
+{% endblock %}

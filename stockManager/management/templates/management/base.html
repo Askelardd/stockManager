@@ -49,6 +49,7 @@
               <a href="{% url 'listar_pos' %}" class="hover:text-blue-400 transition">Lista de Pós</a>
               <a href="{% url 'trafilar_fio' %}" class="hover:text-blue-400 transition">Trefilar Fio</a>
               <a href="{% url 'listar_stock' %}" class="hover:text-blue-400 transition">Listar Stock Geral</a>
+              <a href="{% url 'criar_fornecedor' %}" class="hover:text-blue-400 transition">Criar Fornecedor</a>
               <a href="{% url 'logout' %}" class="ml-4 px-3 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
             {% else %}
             {% endif %}
@@ -66,11 +67,12 @@
       <!-- Menu Mobile -->
       <div id="mobile-menu" class="hidden md:hidden bg-gray-700 px-4 pb-4">
         {% if request.user.is_authenticated %}
-          <a href="{% url 'listar_fios' %}" class="hover:text-blue-400 transition">Lista de Fios</a>
-          <a href="{% url 'listar_pos' %}" class="hover:text-blue-400 transition">Lista de Pós</a>
-          <a href="{% url 'listar_update_fios' %}" class="hover:text-blue-400 transition">Movimentos de Fios</a>
-          <a href="{% url 'listar_update_pos' %}" class="hover:text-blue-400 transition">Movimentos de Pós</a>
-          <a href="{% url 'logout' %}" class="ml-4 px-3 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
+              <a href="{% url 'main_menu' %}" class="hover:text-blue-400 transition">Main Menu</a>
+              <a href="{% url 'listar_pos' %}" class="hover:text-blue-400 transition">Lista de Pós</a>
+              <a href="{% url 'trafilar_fio' %}" class="hover:text-blue-400 transition">Trefilar Fio</a>
+              <a href="{% url 'listar_stock' %}" class="hover:text-blue-400 transition">Listar Stock Geral</a>
+              <a href="{% url 'criar_fornecedor' %}" class="hover:text-blue-400 transition">Criar Fornecedor</a>
+              <a href="{% url 'logout' %}" class="ml-4 px-3 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
         {% else %}
         {% endif %}
       </div>

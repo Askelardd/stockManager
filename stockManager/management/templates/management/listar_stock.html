@@ -22,7 +22,8 @@
         <th class="py-3 px-6 text-left">Fornecedor</th>
         <th class="py-3 px-6 text-left">Última Atualização</th>
         <th class="py-3 px-6 text-left">Utilizador</th>
-        <th class="py-3 px-6 text-center">Ações</th>
+        <th class="py-3 px-6 text-center">Ações Qnt</th>
+        <th class="py-3 px-6 text-center">Ações Geral</th>
       </tr>
     </thead>
 
@@ -84,10 +85,22 @@
             </a>
           </div>
         </td>
+        <td class="py-3 px-6 text-center">
+          <div class="flex flex-col items-center space-y-1">
+            <a href="{% url 'editar_stock' item.id %}"
+               class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-1 rounded shadow">
+              Editar
+            </a>
+            <a href="{% url 'delete_stock' item.id %}"
+               class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
+              Deletar
+            </a>
+          </div>
+        </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="8" class="py-3 px-6 text-center">Nenhum produto encontrado.</td>
+        <td colspan="9" class="py-3 px-6 text-center">Nenhum produto encontrado.</td>
       </tr>
       {% endfor %}
     </tbody>
