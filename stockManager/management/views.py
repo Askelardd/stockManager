@@ -37,10 +37,14 @@ def menu_agulhas(request):
 def main_menu(request):
     return render(request, 'management/menu_main.html')
 
+def menu_fornecedor(request):
+    return render(request, 'management/menu_fornecedor.html')
+
 def user_logout(request):
     logout(request)
     messages.success(request, "Saiu da sua conta com sucesso!")
     return redirect('login', 0)
+
 
 def login_view(request, user_id=None):
     user = get_object_or_404(User, id=user_id)
@@ -59,6 +63,7 @@ def login_view(request, user_id=None):
 
     return render(request, 'management/login.html', {'user': user})
 
+@login_required
 def novo_fio(request):
     fornecedores = Fornecedor.objects.order_by('nome')
     material_choices = Fios._meta.get_field('material').choices  # [('cobre','Cobre'), ('aco','Aço')]
@@ -121,6 +126,7 @@ def novo_fio(request):
         'material_choices': material_choices,
     })
 
+@login_required
 def listar_pos(request):
     pos = Po.objects.all()
     fornecedor = Fornecedor.objects.all()
@@ -183,6 +189,7 @@ def listar_pos(request):
         'data_fim': data_fim,
     })
 
+@login_required
 def adicionarMaisde1Po(request, po_id):
     po = get_object_or_404(Po, pk=po_id)
 
@@ -218,7 +225,7 @@ def adicionarMaisde1Po(request, po_id):
 
     return render(request, 'management/adicionar_po.html', {'po': po})
 
-
+@login_required
 def removerPo(request, po_id):
     po = get_object_or_404(Po, pk=po_id)
     context = {'po': po}
@@ -259,11 +266,12 @@ def removerPo(request, po_id):
 
     return render(request, 'management/remover_po.html', context)
 
+@login_required
 def listar_updates(request):
     updates = updatePo.objects.all()
     return render(request, 'management/listar_update_pos.html', {'updates': updates})
 
-
+@login_required
 def listar_fios(request):
     if request.method == 'POST':
         fio_id = request.POST.get('fio_id')
@@ -300,6 +308,7 @@ def listar_fios(request):
     fornecedor = Fornecedor.objects.all()
     return render(request, 'management/listar_fios.html', {'fios': fios, 'fornecedor': fornecedor})
 
+@login_required
 def adicionarMaisde1Fio(request, fio_id):
     fio = get_object_or_404(Fios, pk=fio_id)
     context = {'fio': fio}
@@ -334,6 +343,7 @@ def adicionarMaisde1Fio(request, fio_id):
 
     return render(request, 'management/adicionar_fio.html', context)
 
+@login_required
 def removerFio(request, fio_id):
     fio = get_object_or_404(Fios, pk=fio_id)
     context = {'fio': fio}
@@ -366,12 +376,12 @@ def removerFio(request, fio_id):
             context['error'] = "Por favor, insira um número válido maior que zero."
 
     return render(request, 'management/remover_fio.html', context)
-
+@login_required
 def listar_updates_fios(request):
     updates = updateFios.objects.all()
     return render(request, 'management/listar_update_fios.html', {'updates': updates})
 
-
+@login_required
 def historico_fios(request):
     filtro_data = request.GET.get("filtro_data", "hoje")
     data_inicio = request.GET.get("data_inicio")
@@ -533,7 +543,7 @@ def historico_fios(request):
     }
     return render(request, "management/historico_fios.html", ctx)
 
-
+@login_required
 def filtrar_po_saidas(request):
     today = now().date()
     filtro_data = request.GET.get('filtro_data', 'hoje')
@@ -593,7 +603,7 @@ def filtrar_po_saidas(request):
     }
     return render(request, 'management/po_saidas_filtro.html', context)
 
-
+@login_required
 def filtrar_po_entradas(request):
     today = now().date()
     filtro_data = request.GET.get('filtro_data', 'hoje')
@@ -653,7 +663,6 @@ def filtrar_po_entradas(request):
     }
     return render(request, 'management/po_entradas_filtro.html', context)
 
-# management/views.py
 from datetime import date, datetime, timedelta
 from django.utils import timezone
 
@@ -716,14 +725,14 @@ def _range_por_filtro(filtro_data, data_inicio_str, data_fim_str):
     # default: hoje
     return _make_day_bounds(hoje)
 
-
-
+@login_required
 def historico_po(request):
     filtro_data = request.GET.get("filtro_data", "hoje")
     data_inicio = request.GET.get("data_inicio")
     data_fim    = request.GET.get("data_fim")
     user_id     = request.GET.get("user_id", "0")
     tipo        = request.GET.get("tipo", "todos")  # "todos" | "entradas" | "saidas"
+    ref         = (request.GET.get("ref") or "").strip()           # NEW: referência exata selecionada
 
     di, df = _range_por_filtro(filtro_data, data_inicio, data_fim)
 
@@ -739,6 +748,17 @@ def historico_po(request):
     if user_id and user_id.isdigit() and int(user_id) != 0:
         ent = ent.filter(user__id=int(user_id))
         sai = sai.filter(user__id=int(user_id))
+
+    # Opções de referências disponíveis (com base nos filtros de data/utente)
+    refs_ent = set(ent.values_list("po__reference", flat=True).distinct())
+    refs_sai = set(sai.values_list("po__reference", flat=True).distinct())
+    refs_disponiveis = sorted((refs_ent | refs_sai) - {None, ""})           
+
+    # Filtro por referência (exata) ou pesquisa parcial
+    if ref:
+        ent = ent.filter(po__reference=ref)                                  
+        sai = sai.filter(po__reference=ref)                                  
+                   # 
 
     # Normalizar campos para UNIÓN (têm os mesmos nomes/ordens)
     ent_norm = (ent
@@ -778,7 +798,7 @@ def historico_po(request):
     # Ordenação (só pode após union)
     historico = historico.order_by("-date")
 
-    # Totais
+    # Totais (já respeitam os filtros aplicados acima)
     total_entradas = ent.aggregate(total=Sum("quantity_added"))["total"] or 0
     total_saidas   = sai.aggregate(total=Sum("quantity_used"))["total"] or 0
 
@@ -787,10 +807,9 @@ def historico_po(request):
     elif tipo == "saidas":
         total_listado = total_saidas
     else:
-        # Para "todos", mostramos dois totais e o saldo
         total_listado = None
 
-    # Resumo por pó (Entradas, Saídas, Saldo)
+    # Resumo por pó (Entradas, Saídas, Saldo) — também já filtrado
     entradas_por_po = (ent
         .values("po__product", "po__reference")
         .annotate(total_ent=Sum("quantity_added"))
@@ -800,7 +819,6 @@ def historico_po(request):
         .annotate(total_sai=Sum("quantity_used"))
     )
 
-    # Juntar os dois dicionários por (product, reference)
     resumo_map = {}
     for row in entradas_por_po:
         key = (row["po__product"], row["po__reference"])
@@ -819,7 +837,6 @@ def historico_po(request):
         v["saldo"] = (v["entradas"] or 0) - (v["saidas"] or 0)
         resumo_por_po.append(v)
 
-    # Ordenar por produto/ref
     resumo_por_po.sort(key=lambda x: (x["product"], x["reference"]))
 
     users = User.objects.all().order_by("username")
@@ -832,6 +849,9 @@ def historico_po(request):
         "user_id": int(user_id) if user_id and user_id.isdigit() else 0,
         "users": users,
         "tipo": tipo,
+
+        "ref": ref,                                
+        "refs_disponiveis": refs_disponiveis,      
 
         "total_entradas": total_entradas,
         "total_saidas": total_saidas,
@@ -1013,7 +1033,7 @@ def criar_fio_rapido(request):
 
 
 
-
+@login_required
 def historico_trefilagens(request):
     today = now().date()
 
@@ -1076,6 +1096,8 @@ def historico_trefilagens(request):
     }
     return render(request, 'management/historico_trefilagens.html', context)
 
+
+@login_required
 def listar_stock(request):
     if request.method == 'POST':
         stock_id = request.POST.get('stock_id')
@@ -1126,7 +1148,7 @@ def listar_stock(request):
     fornecedor = Fornecedor.objects.all()
     return render(request, 'management/listar_stock.html', {'stock': stock, 'fornecedor': fornecedor})
 
-
+@login_required
 def adicionarStock(request, stock_id):
     stock = get_object_or_404(Stock, pk=stock_id)
 
@@ -1162,7 +1184,7 @@ def adicionarStock(request, stock_id):
 
     return render(request, 'management/adicionar_stock.html', {'stock': stock})
 
-
+@login_required
 def removerStock(request, stock_id):
     stock = get_object_or_404(Stock, pk=stock_id)
     context = {'stock': stock}
@@ -1201,12 +1223,9 @@ def removerStock(request, stock_id):
 
     return render(request, 'management/remover_stock.html', context)
 
-# management/views.py
-from django.db.models import F, Sum, Value, CharField
-from django.contrib.auth.models import User
-from django.shortcuts import render
-from .models import StockEntradas, StockSaidas, CategoriaProduto   # 👈 importa a categoria
 
+
+@login_required
 def historico_stock(request):
     filtro_data = request.GET.get("filtro_data", "hoje")
     data_inicio = request.GET.get("data_inicio")
@@ -1324,7 +1343,7 @@ def historico_stock(request):
     }
     return render(request, "management/historico_stock.html", ctx)
 
-
+@login_required
 def listar_agulhas(request):
     if request.method == 'POST':
         agulha_id = request.POST.get('agulha_id')
@@ -1373,7 +1392,7 @@ def listar_agulhas(request):
     fornecedor = Fornecedor.objects.all()
     return render(request, 'management/listar_agulhas.html', {'agulhas': agulhas, 'fornecedor': fornecedor})
 
-
+@login_required
 def adicionar_agulha(request, agulha_id):
     agulha = get_object_or_404(Agulhas, pk=agulha_id)
 
@@ -1409,7 +1428,7 @@ def adicionar_agulha(request, agulha_id):
 
     return render(request, 'management/adicionar_agulha.html', {'agulha': agulha})
 
-
+@login_required
 def remover_agulha(request, agulha_id):
     agulha = get_object_or_404(Agulhas, pk=agulha_id)
     context = {'agulha': agulha}
@@ -1448,7 +1467,7 @@ def remover_agulha(request, agulha_id):
 
     return render(request, 'management/remover_agulha.html', context)
 
-
+@login_required
 def historico_agulhas(request):
     filtro_data = request.GET.get("filtro_data", "hoje")
     data_inicio = request.GET.get("data_inicio")
@@ -1571,7 +1590,7 @@ def historico_agulhas(request):
     }
     return render(request, "management/historico_agulhas.html", ctx)
 
-
+@login_required
 def novo_stock(request):
     if request.method == 'POST':
         product = request.POST.get('product')
@@ -1603,6 +1622,7 @@ def novo_stock(request):
     fornecedor = Fornecedor.objects.all()
     return render(request, 'management/novo_stock.html', {'fornecedor': fornecedor, 'category': category})
 
+@login_required
 def nova_agulha(request):
     if request.method == 'POST':
         tipo = request.POST.get('tipo')
@@ -1630,3 +1650,117 @@ def nova_agulha(request):
 
     fornecedor = Fornecedor.objects.all()
     return render(request, 'management/nova_agulha.html', {'fornecedor': fornecedor})
+
+@login_required
+def editar_stock(request, stock_id):
+    stock = get_object_or_404(Stock, pk=stock_id)
+
+    if request.method == 'POST':
+        product = request.POST.get('product')
+        min_stock = request.POST.get('min_stock')
+        quantity = request.POST.get('quantity')
+        fornecedor_id = request.POST.get('fornecedor')
+        category_id = request.POST.get('category')
+
+        try:
+            fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+            category = CategoriaProduto.objects.get(id=category_id)
+
+            stock.product = product
+            stock.min_stock = int(min_stock)
+            stock.quantity = int(quantity)
+            stock.fornecedor = fornecedor
+            stock.categoria = category
+            stock.user = request.user
+            stock.save()
+
+            messages.success(request, "Stock atualizado com sucesso.")
+            return redirect('listar_stock')
+
+        except Fornecedor.DoesNotExist:
+            messages.error(request, "Fornecedor inválido.")
+        except CategoriaProduto.DoesNotExist:
+            messages.error(request, "Categoria inválida.")
+        except ValueError:
+            messages.error(request, "Dados inválidos ao atualizar stock.")
+
+    category = CategoriaProduto.objects.all()
+    fornecedor = Fornecedor.objects.all()
+    return render(request, 'management/editar_stock.html', {
+        'stock': stock,
+        'fornecedor': fornecedor,
+        'category': category
+    })
+
+@login_required
+def delete_stock(request, stock_id):
+    stock = get_object_or_404(Stock, pk=stock_id)
+
+    if request.method == 'POST':
+        stock.delete()
+        messages.success(request, "Stock removido com sucesso.")
+        return redirect('listar_stock')
+
+    return render(request, 'management/delete_stock.html', {'stock': stock})
+
+@login_required
+def criar_fornecedor(request):
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        ref_fornecedor = request.POST.get('ref_fornecedor', '').strip()
+        email = request.POST.get('email', '').strip()
+        telefone = request.POST.get('telefone', '').strip()
+
+        if not nome:
+            messages.error(request, "O campo 'Nome' é obrigatório.")
+            return render(request, 'management/criar_fornecedor.html', {'form': request.POST})
+
+        Fornecedor.objects.create(
+            nome=nome,
+            ref_fornecedor=ref_fornecedor,
+            email=email,
+            telefone=telefone
+        )
+        messages.success(request, "Fornecedor criado com sucesso!")
+        return redirect('main_menu')
+
+    return render(request, 'management/criar_fornecedor.html')
+
+
+def listar_fornecedores(request):
+    fornecedores = Fornecedor.objects.all().order_by('nome')
+    return render(request, 'management/listar_fornecedores.html', {'fornecedores': fornecedores})
+
+def editar_fornecedor(request, fornecedor_id):
+    fornecedor = get_object_or_404(Fornecedor, pk=fornecedor_id)
+
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        ref_fornecedor = request.POST.get('ref_fornecedor', '').strip()
+        email = request.POST.get('email', '').strip()
+        telefone = request.POST.get('telefone', '').strip()
+
+        if not nome:
+            messages.error(request, "O campo 'Nome' é obrigatório.")
+            return render(request, 'management/editar_fornecedor.html', {'fornecedor': fornecedor})
+
+        fornecedor.nome = nome
+        fornecedor.ref_fornecedor = ref_fornecedor
+        fornecedor.email = email
+        fornecedor.telefone = telefone
+        fornecedor.save()
+
+        messages.success(request, "Fornecedor atualizado com sucesso!")
+        return redirect('listar_fornecedores')
+
+    return render(request, 'management/editar_fornecedor.html', {'fornecedor': fornecedor})
+
+def deletar_fornecedor(request, fornecedor_id):
+    fornecedor = get_object_or_404(Fornecedor, pk=fornecedor_id)
+
+    if request.method == 'POST':
+        fornecedor.delete()
+        messages.success(request, "Fornecedor removido com sucesso!")
+        return redirect('listar_fornecedores')
+
+    return render(request, 'management/deletar_fornecedor.html', {'fornecedor': fornecedor})

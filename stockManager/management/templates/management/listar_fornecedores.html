@@ -1,0 +1,73 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Listar Fornecedores{% endblock %}
+
+{% block content %}
+
+<h1 class="text-2xl font-bold text-white mb-6">Lista de Fornecedores</h1>
+
+<div class="flex justify-between items-center mb-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar fornecedor..."
+                 class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
+</div>
+
+<div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
+        <table id="fornecedoresTable" class="min-w-full table-auto">
+                <thead>
+                        <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Nome</th>
+                                <th class="py-3 px-6 text-left">Referência</th>
+                                <th class="py-3 px-6 text-left">Email</th>
+                                <th class="py-3 px-6 text-left">Telefone</th>
+                                <th class="py-3 px-6 text-center">Ações</th>
+                        </tr>
+                </thead>
+                <tbody class="text-gray-600 text-sm font-light">
+                        {% for fornecedor in fornecedores %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                <td class="py-3 px-6 text-left">
+                                        {{ fornecedor.nome }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fornecedor.ref_fornecedor }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fornecedor.email }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fornecedor.telefone }}
+                                </td>
+                                <td class="py-3 px-6 text-center">
+                                        <a href="{% url 'editar_fornecedor' fornecedor.id %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded shadow">
+                                                Editar
+                                        </a>
+                                        <a href="{% url 'deletar_fornecedor' fornecedor.id %}" class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
+                                                Deletar
+                                        </a>
+                                </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                                <td colspan="5" class="py-3 px-6 text-center">Nenhum fornecedor encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                </tbody>
+        </table>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#fornecedoresTable tbody tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

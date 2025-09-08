@@ -73,6 +73,16 @@
         </select>
       </div>
 
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Referência</label>
+          <select name="ref" class="border p-2 w-full">
+            <option value="">Todas</option>
+            {% for r in refs_disponiveis %}
+              <option value="{{ r }}" {% if r == ref %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+      </div>
+
       <div class="md:col-span-5 flex items-center gap-3 pt-1">
         <button type="submit"
                 class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">

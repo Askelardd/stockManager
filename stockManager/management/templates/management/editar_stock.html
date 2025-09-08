@@ -1,0 +1,78 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Editar Stock{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-white mb-6">Editar Stock</h1>
+
+<div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        
+        <div>
+            <label for="product" class="block text-gray-700 font-medium">Produto:</label>
+            <input type="text" id="product" name="product" value="{{ stock.product }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+        </div>
+
+        <div>
+            <label for="min_stock" class="block text-gray-700 font-medium">Estoque Mínimo:</label>
+            <input type="number" id="min_stock" name="min_stock" value="{{ stock.min_stock }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+        </div>
+
+        <div>
+            <label for="quantity" class="block text-gray-700 font-medium">Quantidade:</label>
+            <input type="number" id="quantity" name="quantity" value="{{ stock.quantity }}" required
+                   class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+        </div>
+
+        <div>
+            <label for="fornecedor" class="block text-gray-700 font-medium">Fornecedor:</label>
+            <select id="fornecedor" name="fornecedor" required
+                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm !text-gray-900">
+                <option class="!text-gray-900" value="">Selecione um fornecedor</option>
+                {% for f in fornecedor %}
+                <option class="!text-gray-900"
+                        value="{{ f.id }}"
+                        {% if f.id == stock.fornecedor.id %}selected{% endif %}>
+                    {{ f.nome|default:f.nome|default:f }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="category" class="block text-gray-700 font-medium">Categoria:</label>
+            <select id="category" name="category" required
+                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm !text-gray-900">
+                <option class="!text-gray-900" value="">Selecione uma categoria</option>
+                {% for c in category %}
+                <option class="!text-gray-900"
+                        value="{{ c.id }}"
+                        {% if c.id == stock.categoria.id %}selected{% endif %}>
+                    {{ c.nome|default:c.nome|default:c }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+
+        <div class="flex justify-end">
+            <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded shadow">
+                Atualizar
+            </button>
+        </div>
+        
+    </form>
+
+    <div class="mt-4">
+        <a href="{% url 'listar_stock' %}"
+           class="text-blue-500 hover:text-blue-600 font-medium">
+            Voltar para a lista de estoque
+        </a>
+    </div>
+</div>
+{% endblock %}
