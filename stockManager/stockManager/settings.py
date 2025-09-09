@@ -50,6 +50,18 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'toma.tools2017@gmail.com'
+EMAIL_HOST_PASSWORD = 'uexa lgll cwwr qoni'
+EMAIL_RECIPIENTS = [
+    'dalilamoreira@toma.tools',
+    'andrepimentel@toma.tools'
+]
+
+
 ROOT_URLCONF = 'stockManager.urls'
 
 TEMPLATES = [

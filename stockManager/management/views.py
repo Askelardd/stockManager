@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from django.urls import reverse
 from django.utils.timezone import now, make_aware
@@ -14,8 +13,11 @@ from django.db import transaction
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
 from django.contrib.auth.decorators import login_required
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.utils import timezone
+from django.conf import settings
 
 
 def index(request):
@@ -43,7 +45,7 @@ def menu_fornecedor(request):
 def user_logout(request):
     logout(request)
     messages.success(request, "Saiu da sua conta com sucesso!")
-    return redirect('login', 0)
+    return redirect('index')
 
 
 def login_view(request, user_id=None):
@@ -57,7 +59,7 @@ def login_view(request, user_id=None):
             auth_login(request, auth_user)  # cria a sessão
             messages.success(request, f'Bem-vindo, {auth_user.username}!')
             # PRG: redireciona para evitar repost em refresh
-            return redirect('index')  # ou outra página, por ex. 'listar_pos'
+            return redirect('main_menu')  # ou outra página, por ex. 'listar_pos'
         else:
             messages.error(request, 'Palavra-passe inválida.')
 
@@ -97,7 +99,7 @@ def novo_fio(request):
             if weight_dec < 0:
                 raise InvalidOperation("Peso não pode ser negativo.")
             if quantity_int < 0 or min_stock_int < 0:
-                raise InvalidOperation("Quantidade/Estoque mínimo não podem ser negativos.")
+                raise InvalidOperation("Quantidade/Stock mínimo não podem ser negativos.")
         except (InvalidOperation, ValueError):
             messages.error(request, "Verifique os valores numéricos informados.")
             return render(request, 'management/novo_fio.html', {
@@ -157,13 +159,6 @@ def listar_pos(request):
         if action:
             po_item.user = request.user
             po_item.save()
-            updatePo.objects.create(
-                po=po_item,
-                previous_quantity=prev_quantity,
-                new_quantity=po_item.quantity,
-                user=request.user,
-                action=action
-            )
 
         if action == 'removed':
             poSaidas.objects.create(
@@ -172,12 +167,22 @@ def listar_pos(request):
                 user=request.user
             )
 
+            if po_item.quantity < po_item.min_stock:
+                messages.warning(request, f"Atenção: A quantidade do PO '{po_item.reference}' está abaixo do Stock mínimo!") 
+                send_mail(
+                    subject="Alerta de Stock Mínimo para PO",
+                    message=f"O Stock do PO '{po_item.reference}' caiu abaixo do mínimo definido ({po_item.min_stock}). Quantidade atual: {po_item.quantity}.",
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=settings.EMAIL_RECIPIENTS,
+                    fail_silently=False,
+                    )
         if action == 'added':
             poEntradas.objects.create(
                 po=po_item,
                 quantity_added=1,
                 user=request.user
             )
+
 
         return redirect('listar_pos')
 
@@ -257,6 +262,18 @@ def removerPo(request, po_id):
                 user=request.user
             )
 
+            if po.quantity < po.min_stock:
+                messages.warning(request, f"Atenção: A quantidade do PO '{po.reference}' está abaixo do Stock mínimo!")
+                context['warning'] = True
+                
+                send_mail(
+                    subject="Alerta de Stock Mínimo para PO",
+                    message=f"O Stock do PO '{po.reference}' caiu abaixo do mínimo definido ({po.min_stock}). Quantidade atual: {po.quantity}.",
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=settings.EMAIL_RECIPIENTS,
+                    fail_silently=False,
+                    )
+
             context['success'] = True
 
             return redirect('listar_pos')
@@ -280,24 +297,9 @@ def listar_fios(request):
             if 'increment' in request.POST:
                 fio_item.quantity += 1
 
-                update_fios = updateFios(
-                    fio=fio_item,
-                    previous_quantity=fio_item.quantity - 1,
-                    new_quantity=fio_item.quantity,
-                    user=request.user,
-                    action='increment'
-                )
-                update_fios.save()
             elif 'decrement' in request.POST:
                 fio_item.quantity -= 1
-                update_fios = updateFios(
-                    fio=fio_item,
-                    previous_quantity=fio_item.quantity + 1,
-                    new_quantity=fio_item.quantity,
-                    user=request.user,
-                    action='decrement'
-                )
-                update_fios.save()
+ 
             fio_item.save()
             fio_item.user = request.user
             fio_item.save()
@@ -663,8 +665,7 @@ def filtrar_po_entradas(request):
     }
     return render(request, 'management/po_entradas_filtro.html', context)
 
-from datetime import date, datetime, timedelta
-from django.utils import timezone
+
 
 def _make_day_bounds(d: date):
     """
@@ -1130,15 +1131,31 @@ def listar_stock(request):
                     user=request.user
                 )
 
+                if stock_item.quantity < stock_item.min_stock:
+                    messages.warning(request, f"O Stock do '{stock_item.product}' caiu abaixo do mínimo definido ({stock_item.min_stock}). Quantidade atual: {stock_item.quantity}.")
+
+                    send_mail(
+                        subject="Alerta de Stock Mínimo para Stock",
+                        message=f"O Stock do '{stock_item.product}' caiu abaixo do mínimo definido ({stock_item.min_stock}). Quantidade atual: {stock_item.quantity}.",
+                        from_email=settings.EMAIL_HOST_USER,
+                        recipient_list=settings.EMAIL_RECIPIENTS,
+                        fail_silently=False,
+                        )
+                
                 StockSaidas.objects.create(
                     stock=stock_item,
                     quantity_removed=1,
                     user=request.user
                 )
 
+                
+
             stock_item.save()
             stock_item.user = request.user
             stock_item.save()
+
+
+
 
 
 
@@ -1169,7 +1186,7 @@ def adicionarStock(request, stock_id):
                 action='added',
                 user=request.user
             )
-
+            
             StockEntradas.objects.create(
                 stock=stock,
                 quantity_added=quantidade,
@@ -1215,6 +1232,16 @@ def removerStock(request, stock_id):
             )
 
             context['success'] = True
+
+            if stock.quantity < stock.min_stock:
+                messages.warning(request, f"O Stock do '{stock.product}' caiu abaixo do mínimo definido ({stock.min_stock}). Quantidade atual: {stock.quantity}.")
+                send_mail(
+                    subject="Alerta de Stock Mínimo para Stock",
+                    message=f"O Stock do '{stock.product}' caiu abaixo do mínimo definido ({stock.min_stock}). Quantidade atual: {stock.quantity}.",
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=settings.EMAIL_RECIPIENTS,
+                    fail_silently=False,
+                    )
 
             return redirect('listar_stock')
 
