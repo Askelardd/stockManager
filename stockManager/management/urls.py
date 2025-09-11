@@ -21,6 +21,8 @@ urlpatterns = [
     path('fios/criar-rapido/', views.criar_fio_rapido, name='criar_fio_rapido'),
     path('fios/historico/', views.historico_fios, name='historico_fios'),
     path('novo_fio/', views.novo_fio, name='novo_fio'),
+    path('listar_fiousado/', views.listar_fiousado, name='listar_fiousado'),
+    path('deletar_fiousado/<int:id>/', views.deletar_fiousado, name='deletar_fiousado'),
 
     # Trefilagem
     path('trafilar/historico/', views.historico_trefilagens, name='historico_trefilagens'),

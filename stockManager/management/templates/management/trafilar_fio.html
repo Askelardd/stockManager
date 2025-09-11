@@ -1,6 +1,6 @@
 {% extends "management/base.html" %}
 
-{% block title %}Trafilar Fio{% endblock %}
+{% block title %}Trefilar (a partir de FioUsado){% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
@@ -21,95 +21,126 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- Selecionar origem -->
+    <!-- Coluna esquerda: selecionar FioUsado (lote) -->
     <div class="lg:col-span-1 bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-900">Selecionar Fio de Origem</h2>
+      <h2 class="text-lg font-semibold text-gray-900">Selecionar Lote (FioUsado)</h2>
+      <p class="text-sm text-gray-600">Escolha o lote de bobines de origem.</p>
       </div>
-      <div class="p-5 space-y-3">
-        <div class="text-sm text-gray-600">Escolha o fio a partir do qual o peso será repartido.</div>
-        <div class="space-y-2 max-h-[420px] overflow-auto">
-          {% for fio in fios %}
-            <a href="{% url 'trafilar_fio' %}?origem_id={{ fio.id }}"
-               class="block rounded-lg border px-3 py-2 hover:bg-gray-50
-                      {% if origem and origem.id == fio.id %}border-blue-500 bg-blue-50{% else %}border-gray-200{% endif %}">
-              <div class="flex items-center justify-between">
-                <span class="font-medium text-gray-900">{{ fio.size }} mm</span>
-                <span class="text-sm text-gray-600">{{ fio.get_material_display }}</span>
-              </div>
-              <div class="text-sm text-gray-700">Peso: <strong>{{ fio.weight }} g</strong> · Qtd: {{ fio.quantity }}</div>
-            </a>
-          {% empty %}
-            <p class="text-sm text-gray-500">Sem fios cadastrados.</p>
-          {% endfor %}
+      <div class="p-5 space-y-2 max-h-[620px] overflow-auto">
+      {% for usado in usados_lista %}
+        <a href="{% url 'trafilar_fio' %}?origem_usado_id={{ usado.id }}"
+         class="block rounded-lg border px-3 py-2 hover:bg-gray-50
+            {% if origem_usado and origem_usado.id == usado.id %}border-blue-500 bg-blue-50{% else %}border-gray-200{% endif %}">
+        <div class="flex items-center justify-between">
+          <span class="font-medium text-gray-900">{{ usado.size }} mm</span>
+          <span class="text-sm text-gray-600">{{ usado.data_uso|date:"Y-m-d H:i" }}</span>
         </div>
+        <div class="text-sm text-gray-700">
+          Medida: {{ usado.size }} mm · Material: {{ usado.material|title }}
+        </div>
+        <div class="text-sm text-gray-700">
+          Peso: <strong>{{ usado.weight }} g</strong> · Qtd: <strong>{{ usado.quantidade_usada }}</strong>
+        </div>
+        </a>
+      {% empty %}
+        <p class="text-sm text-gray-500 px-3">Sem lotes (FioUsado) registados.</p>
+      {% endfor %}
       </div>
     </div>
 
-    <!-- Form trafilar -->
+    <!-- Coluna direita: formulário -->
     <div class="lg:col-span-2 bg-white shadow-sm ring-1 ring-gray-100 rounded-2xl overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-gray-900">Distribuir Peso para Destinos</h2>
-        {% if origem %}
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-gray-600">
-              Origem: {{ origem.size }} mm · {{ origem.get_material_display }} · Disponível:
-              <strong id="pesoDisponivel">{{ origem.weight }}</strong> g
-            </span>
-            <button type="button"
-                    class="inline-flex items-center rounded-lg border border-blue-600 px-3 py-1.5 text-sm text-blue-700 font-semibold hover:bg-blue-50"
-                    onclick="openNovoFioModal()">
-              Novo destino
-            </button>
-          </div>
+        <h2 class="text-lg font-semibold text-gray-900">Trefilar e Distribuir</h2>
+        {% if origem_usado %}
+          <span class="text-sm text-gray-600">
+            Lote #{{ origem_usado.id }} · {{ origem_usado.size }} mm · {{ origem_usado.material|title }} ·
+            Disponível: <strong id="pesoDisponivel">{{ origem_usado.weight }}</strong> g ·
+            Qtd bobines: <strong id="qtdDisponivel">{{ origem_usado.quantidade_usada }}</strong>
+            {% if origem_ppb %} · ~<strong id="pesoPorBobine">{{ origem_ppb }}</strong> g/bobine{% endif %}
+          </span>
         {% endif %}
       </div>
 
       <div class="p-5">
-        {% if not origem %}
-          <p class="text-sm text-gray-600">Selecione um fio de origem ao lado para começar.</p>
+        {% if not origem_usado %}
+          <p class="text-sm text-gray-600">Selecione um lote (FioUsado) ao lado para começar.</p>
         {% else %}
-          <form method="post" class="space-y-4" oninput="calcTotal()">
+          <form method="post" class="space-y-6" oninput="calcTotais()">
             {% csrf_token %}
-            <input type="hidden" name="origem_id" value="{{ origem.id }}"/>
+            <input type="hidden" name="origem_usado_id" value="{{ origem_usado.id }}"/>
 
-            <div id="linhas" class="space-y-3">
-              <!-- linha base -->
-              <div class="linha grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div class="md:col-span-8">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
-                  <select name="target_id[]" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">Selecione…</option>
-                    {% for d in destinos %}
-                      <option value="{{ d.id }}">{{ d.size }} mm — Peso: {{ d.weight }} g</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="md:col-span-3">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Peso a transferir (g)</label>
-                  <input type="number" step="0.01" min="0" name="peso[]" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" placeholder="0.00" />
-                </div>
-                <div class="md:col-span-1">
-                  <button type="button" class="w-full rounded-lg border border-gray-300 px-3 py-2 hover:bg-gray-50" onclick="removerLinha(this)">–</button>
-                </div>
+            <!-- Quantidade de bobines -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade de bobines a usar</label>
+              <input type="number" min="1" max="{{ origem_usado.quantidade_usada }}" name="quantidade" id="qtdBobines"
+                     class="w-full md:w-56 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                     placeholder="0" />
+              <p class="mt-1 text-xs text-gray-500">Máximo: {{ origem_usado.quantidade_usada }}.</p>
+            </div>
+
+            <!-- Pesos por bobine -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Pesos por bobine (g)</label>
+                {% if origem_ppb %}
+                <span class="text-xs text-gray-500">
+                  Cada um ≤ ~<span id="ppbHint">{{ origem_ppb }}</span> g
+                </span>
+                {% endif %}
+              </div>
+              <div id="bobinesContainer" class="space-y-2">
+                {# inputs gerados via JS conforme quantidade #}
               </div>
             </div>
 
-            <div class="flex items-center gap-4 pt-2">
-              <button type="button" onclick="adicionarLinha()"
-                      class="inline-flex items-center rounded-lg border border-blue-600 px-3 py-2 text-blue-700 font-semibold hover:bg-blue-50">
-                + Adicionar destino
-              </button>
-              <div class="ml-auto text-sm text-gray-700">
-                Total a transferir: <strong id="totalTransferir">0.00</strong> g
-                <span id="alertaExcede" class="ml-2 hidden text-red-600 font-semibold">Excede o disponível!</span>
+            <!-- Destinos -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-semibold text-gray-900">Destinos</h3>
+                <button type="button" onclick="adicionarLinhaDestino()"
+                        class="inline-flex items-center rounded-lg border border-blue-600 px-3 py-1.5 text-blue-700 font-semibold hover:bg-blue-50">
+                  + Adicionar destino
+                </button>
+              </div>
+
+              <div id="linhasDestinos" class="space-y-3">
+                <div class="linha grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  <div class="md:col-span-8">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
+                    <select name="target_id[]" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                      <option value="">Selecione…</option>
+                      {% for d in destinos %}
+                        <option value="{{ d.id }}">{{ d.size }} mm</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Peso (g)</label>
+                    <input type="number" step="0.01" min="0" name="peso[]" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" placeholder="0.00" />
+                  </div>
+                  <div class="md:col-span-1">
+                    <button type="button" class="w-full rounded-lg border border-gray-300 px-3 py-2 hover:bg-gray-50" onclick="removerLinhaDestino(this)">–</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 pt-1">
+                <div class="text-sm text-gray-700">
+                  Total destinos: <strong id="totalDestinos">0.00</strong> g
+                </div>
+                <div class="text-sm text-gray-700">
+                  Total retirado bobines: <strong id="totalBobines">0.00</strong> g
+                </div>
+                <span id="alertaMismatch" class="ml-2 hidden text-red-600 font-semibold">Totais não coincidem!</span>
               </div>
             </div>
 
-            <div class="pt-3">
+            <div class="pt-2">
               <button type="submit"
                       class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                Confirmar Transformação
+                Confirmar Trefilagem
               </button>
             </div>
           </form>
@@ -119,120 +150,53 @@
   </div>
 </div>
 
-{% if origem %}
-<div id="novoFioModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
-  <!-- Overlay não clicável -->
-  <div class="absolute inset-0 bg-black/40 pointer-events-none"></div>
-
-  <div class="absolute inset-0 flex items-center justify-center p-4">
-    <div class="w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 relative z-10">
-      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Criar novo fio destino</h3>
-        <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeNovoFioModal()">✕</button>
-      </div>
-
-      <form method="post" action="{% url 'criar_fio_rapido' %}" class="p-5 space-y-4">
-        {% csrf_token %}
-        <input type="hidden" name="origem_id" value="{{ origem.id }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Material</label>
-            <input type="text" value="{{ origem.get_material_display }}" disabled
-                   class="block w-full rounded-lg border-gray-300 bg-gray-100">
-          </div>
-
-          <div>
-            <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Tamanho (mm)</label>
-            <input type="number" step="0.0001" min="0" id="size" name="size" required
-                   class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-          </div>
-
-          <div>
-            <label for="fornecedor" class="block text-sm font-medium text-gray-700 mb-1">Fornecedor</label>
-            <select id="fornecedor" name="fornecedor" required
-                    class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-              <option value="">Selecione…</option>
-              {% for f in fornecedores %}
-                <option value="{{ f.id }}">{{ f.nome }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div>
-            <label for="min_stock" class="block text-sm font-medium text-gray-700 mb-1">Min. stock</label>
-            <input type="number" min="0" id="min_stock" name="min_stock" value="0"
-                   class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-          </div>
-
-          <div>
-            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantidade inicial (opcional)</label>
-            <input type="number" min="0" id="quantity" name="quantity" value="0"
-                   class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-          </div>
-        </div>
-
-        <div class="pt-2 flex items-center justify-end gap-3">
-          <button type="button" class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50" onclick="closeNovoFioModal()">Cancelar</button>
-          <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700">Criar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-{% endif %}
-
 <script>
-  function adicionarLinha() {
-    const linhas = document.getElementById('linhas');
-    const base = linhas.querySelector('.linha');
-    const nova = base.cloneNode(true);
-    // limpa valores
-    nova.querySelectorAll('select, input').forEach(el => {
-      if (el.tagName === 'INPUT') el.value = '';
-      else el.selectedIndex = 0;
-    });
+  function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+
+  function renderPesosBobine(){
+    const qtd = parseInt(document.getElementById('qtdBobines')?.value||'0',10);
+    const wrap = document.getElementById('bobinesContainer');
+    if(!wrap) return;
+    wrap.innerHTML='';
+    for(let i=1;i<=qtd;i++){
+      const div=document.createElement('div');
+      div.className='grid grid-cols-1 md:grid-cols-12 gap-3 items-end';
+      div.innerHTML=`
+        <div class="md:col-span-4">
+          <label class="block text-sm text-gray-700 mb-1">Bobine #${i}</label>
+          <input type="number" step="0.01" min="0" name="peso_bobine[]" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" placeholder="0.00" />
+        </div>`;
+      wrap.appendChild(div);
+    }
+    calcTotais();
+  }
+
+  function adicionarLinhaDestino(){
+    const linhas=document.getElementById('linhasDestinos');
+    const base=linhas.querySelector('.linha');
+    const nova=base.cloneNode(true);
+    nova.querySelectorAll('select,input').forEach(el=>{if(el.tagName==='INPUT') el.value=''; else el.selectedIndex=0;});
     linhas.appendChild(nova);
   }
+  function removerLinhaDestino(btn){
+    const linhas=document.getElementById('linhasDestinos');
+    const linha=btn.closest('.linha');
+    if(linhas.children.length>1){linha.remove();calcTotais();}
+  }
 
-    document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeNovoFioModal();
+  function calcTotais(){
+    let totalDest=0; document.querySelectorAll('input[name="peso[]"]').forEach(i=>totalDest+=num(i.value));
+    let totalBob=0;  document.querySelectorAll('input[name="peso_bobine[]"]').forEach(i=>totalBob+=num(i.value));
+    const td=document.getElementById('totalDestinos'); if(td) td.textContent=totalDest.toFixed(2);
+    const tb=document.getElementById('totalBobines'); if(tb) tb.textContent=totalBob.toFixed(2);
+    const alert=document.getElementById('alertaMismatch');
+    if(alert) alert.classList.toggle('hidden', Math.abs(totalDest-totalBob)<0.005);
+  }
+
+  document.addEventListener('input', e=>{
+    if(e.target && e.target.id==='qtdBobines') renderPesosBobine();
+    if(e.target && (e.target.name==='peso[]' || e.target.name==='peso_bobine[]')) calcTotais();
   });
-  
-  function removerLinha(btn) {
-    const linhas = document.getElementById('linhas');
-    const linha = btn.closest('.linha');
-    if (linhas.children.length > 1) {
-      linha.remove();
-      calcTotal();
-    }
-  }
-  function calcTotal() {
-    const pesos = document.querySelectorAll('input[name="peso[]"]');
-    let total = 0;
-    pesos.forEach(i => {
-      const v = parseFloat(i.value);
-      if (!isNaN(v)) total += v;
-    });
-    const totalEl = document.getElementById('totalTransferir');
-    if (totalEl) totalEl.textContent = total.toFixed(2);
-
-    const dispEl = document.getElementById('pesoDisponivel');
-    if (dispEl) {
-      const disponivel = parseFloat(dispEl.textContent);
-      const excede = total > disponivel;
-      const alerta = document.getElementById('alertaExcede');
-      if (alerta) alerta.classList.toggle('hidden', !excede);
-    }
-  }
-  function openNovoFioModal() {
-    document.getElementById('novoFioModal').classList.remove('hidden');
-  }
-  function closeNovoFioModal() {
-    document.getElementById('novoFioModal').classList.add('hidden');
-  }
-  document.addEventListener('DOMContentLoaded', calcTotal);
+  document.addEventListener('DOMContentLoaded', ()=>{ renderPesosBobine(); calcTotais(); });
 </script>
 {% endblock %}
