@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, CategoriaProduto, updatePo, updateFios, poSaidas
-from .models import poEntradas, Stock, StockEntradas, StockSaidas, UpdateStock, Agulhas, AgulhasEntradas, AgulhasSaidas, UpdateAgulhas
+from .models import poEntradas, Stock, StockEntradas, StockSaidas, UpdateStock, Agulhas, AgulhasEntradas, AgulhasSaidas, UpdateAgulhas, FioUsado
 
 # Register your models here.
 @admin.register(Fornecedor)
@@ -19,6 +19,12 @@ class FiosAdmin(admin.ModelAdmin):
     list_display = ('size', 'weight', 'quantity', 'material', 'min_stock', 'fornecedor', 'date_added', 'updated_at')
     search_fields = ('size', 'material')
     list_filter = ('fornecedor', 'material', 'date_added', 'updated_at')
+
+@admin.register(FioUsado)
+class FioUsadoAdmin(admin.ModelAdmin):
+    list_display = ('fio', 'size', 'weight', 'material', 'quantidade_usada', 'data_uso', 'user')
+    search_fields = ('fio__size', 'material', 'user__username')
+    list_filter = ('data_uso', 'material', 'user')
 
 @admin.register(updateFios)
 class updateFiosAdmin(admin.ModelAdmin):

@@ -25,8 +25,13 @@ SECRET_KEY = 'django-insecure-$q3zu*$4h-g@i3vo5$2msg2k93q&t3wkh*_&pq2lk&l%lvx-&r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['0340ea021a63.ngrok-free.app', 'localhost', '127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ['https://0340ea021a63.ngrok-free.app']
 
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0          # não enviar HSTS
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
 
 # Application definition
 

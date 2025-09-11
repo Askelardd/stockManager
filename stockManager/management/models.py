@@ -93,9 +93,10 @@ class Fios(models.Model):
 
     size = models.DecimalField(max_digits=10, decimal_places=4)
     weight = models.DecimalField(max_digits=10, decimal_places=2)
+    weight_unit = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField()
     material = models.CharField(max_length=20, choices=material, default='cobre')
-    min_stock = models.IntegerField()
+    min_stock = models.IntegerField(null=True, blank=True)
     fornecedor = models.ForeignKey(Fornecedor, on_delete=models.CASCADE, null=True, blank=True)
     date_added = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -103,7 +104,19 @@ class Fios(models.Model):
 
 
     def __str__(self):
-        return f"Fios {self.size}mm x {self.weight}g - {self.quantity} unid."
+        return f"Fios {self.size}mm - Material {self.material}"
+    
+class FioUsado(models.Model):
+    fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
+    size = models.DecimalField(max_digits=10, decimal_places=4)
+    weight = models.DecimalField(max_digits=10, decimal_places=2)
+    material = models.CharField(max_length=20)
+    quantidade_usada = models.PositiveIntegerField()
+    data_uso = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} usou {self.quantidade_usada} de {self.fio} em {self.data_uso}"
     
 
 

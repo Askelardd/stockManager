@@ -1,0 +1,84 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Listar Fios Usados{% endblock %}
+
+{% block content %}
+
+<h1 class="text-2xl font-bold text-white mb-6">Listar Fios em Uso</h1>
+
+<div class="flex justify-between items-center mb-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar fio..."
+                 class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
+</div>
+
+<div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
+        <table id="fiosTable" class="min-w-full table-auto">
+                <thead>
+                        <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Fio</th>
+                                <th class="py-3 px-6 text-left">Material</th>
+                                <th class="py-3 px-6 text-left">Tamanho (mm)</th>
+                                <th class="py-3 px-6 text-left">Peso (g)</th>
+                                <th class="py-3 px-6 text-left">Quantidade</th>
+                                <th class="py-3 px-6 text-left">Data de Uso</th>
+                                <th class="py-3 px-6 text-left">Usuário</th>
+                                <th class="py-3 px-6 text-center">Ações</th>
+                        </tr>
+                </thead>
+                <tbody class="text-gray-600 text-sm font-light">
+                        {% for fio_usado in fios_usados %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-100" data-search="{{ fio_usado.fio }} {{ fio_usado.material }} {{ fio_usado.size }} {{ fio_usado.weight }} {{ fio_usado.quantidade_usada }} {{ fio_usado.user.username|default:'' }}">
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.fio }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.material }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.size }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.weight }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.quantidade_usada }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.data_uso|date:"d/m/Y H:i" }}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                        {{ fio_usado.user.username|default:"N/A" }}
+                                </td>
+                                <td class="py-3 px-6 text-center">
+                                        <form method="POST" action="{% url 'deletar_fiousado' fio_usado.id %}" onsubmit="return confirm('Tem certeza que deseja deletar este registro de fio usado?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
+                                                        Dar Baixa
+                                                </button>
+                                        </form>
+                                </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                                <td colspan="8" class="py-3 px-6 text-center">Nenhum fio usado encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                </tbody>
+        </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#fiosTable tbody tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

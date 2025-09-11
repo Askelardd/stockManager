@@ -21,6 +21,7 @@
                 <th class="py-3 px-6 text-left">Material</th>
                 <th class="py-3 px-6 text-left">Tamanho (mm)</th>
                 <th class="py-3 px-6 text-left">Peso (g)</th>
+                <th class="py-3 px-6 text-left">Peso/Unidade</th>
                 <th class="py-3 px-6 text-left">stock Mínimo</th>
                 <th class="py-3 px-6 text-left">Quantidade</th>
                 <th class="py-3 px-6 text-left">Fornecedor</th>
@@ -40,6 +41,9 @@
                 </td>
                 <td class="py-3 px-6 text-left">
                     {{ fio.weight }}
+                </td>
+                <td class="py-3 px-6 text-left">
+                    {{ fio.weight_unit }}
                 </td>
                 <td class="py-3 px-6 text-left">
                     {{ fio.min_stock }}
