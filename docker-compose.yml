@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    container_name: stockmanager_db
+    env_file: env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [stocknet]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stockmanager_web
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: env
+    ports:
+      - "18000:8000"
+    volumes:
+      - static:/app/static
+      - media:/app/media
+    networks: [stocknet]
+    restart: unless-stopped
