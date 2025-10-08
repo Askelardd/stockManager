@@ -1,0 +1,23 @@
+cat > env <<'ENV'
+# --- DJANGO ---
+DJANGO_SECRET_KEY=troca_esta_chave_por_uma_muito_aleatoria
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.112
+CSRF_TRUSTED_ORIGINS=http://192.168.1.112:18000
+TIMEZONE=Europe/Lisbon
+
+# --- BASE DE DADOS (vamos mapear isto para POSTGRES_* no compose) ---
+DB_NAME=stockManager
+DB_USER=stock_user
+DB_PASSWORD=uma_password_segura
+DB_HOST=db
+DB_PORT=5432
+
+# --- EMAIL (usa App Password do Gmail!) ---
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=toma.tools2017@gmail.com
+EMAIL_HOST_PASSWORD=uexa lgll cwwr qoni
+ENV
+

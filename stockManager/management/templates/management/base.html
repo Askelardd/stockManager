@@ -7,45 +7,33 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     {% load static %}
     <link rel="icon" type="image/jpg" href="{% static 'management/media/logoToma.jpg' %}">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-blue': '#00AEEF',
-                        'custom-white': '#FFFFFF',
-                        'custom-black': '#000000',
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="min-h-screen relative" style="background: linear-gradient(135deg, #6b21a8 0%, #a78bfa 50%, #c084fc 100%);">
 
-    <!-- Fundo decorativo -->
-    <div class="absolute inset-0 z-0">
-        <div class="absolute top-10 left-10 w-72 h-72 bg-white/20 rounded-full blur-xl"></div>
-        <div class="absolute top-1/2 right-20 w-96 h-96 bg-black/10 rounded-full blur-2xl"></div>
-        <div class="absolute bottom-20 left-1/3 w-80 h-80 bg-white/15 rounded-full blur-xl"></div>
-        <div class="absolute top-1/4 right-1/4 w-32 h-32 bg-black/5 rotate-45 rounded-lg"></div>
-        <div class="absolute bottom-1/3 left-1/4 w-24 h-24 bg-white/10 rotate-12 rounded-lg"></div>
-    </div>
+</head>
+<body class="min-h-screen relative" style="background: white; overflow-x: hidden;">
+
+  <!-- Fundo decorativo -->
+  <div class="absolute inset-0 z-0">
+    <div class="absolute top-10 left-10 w-72 h-72 bg-black/10 rounded-full blur-xl"></div>
+    <div class="absolute top-1/2 right-20 w-96 h-96 bg-black/5 rounded-full blur-2xl"></div>
+    <div class="absolute bottom-20 left-1/3 w-80 h-80 bg-black/15 rounded-full blur-xl"></div>
+    <div class="absolute top-1/4 right-1/4 w-32 h-32 bg-black/10 rotate-45 rounded-lg"></div>
+    <div class="absolute bottom-1/3 left-1/4 w-24 h-24 bg-black/20 rotate-12 rounded-lg"></div>
+  </div>
 
     <!-- NAVBAR -->
-    <nav class="bg-gray-800 text-white shadow-md relative z-20">
+  <nav class="bg-white text-black shadow-md relative z-20">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <div class="flex items-center">
-            <a href="/" class="text-xl font-bold text-blue-400 hover:text-blue-300 transition">
-              Toma Tools
+            <a href="{% url 'main_menu' %}">
+            <img src="{% static 'management/media/logo.jpg' %}" alt="Logo" class="h-16 w-auto rounded border-1 border-black shadow-lg hover:opacity-80 transition">
             </a>
           </div>
           <!-- Links Desktop -->
             <div class="hidden md:flex space-x-6">
             {% if request.user.is_authenticated %}
-              <a href="{% url 'main_menu' %}" class="hover:text-blue-400 transition">Main Menu</a>
+              <a href="{% url 'main_menu' %}" class="hover:text-blue-400 transition">Menu Principal</a>
               <a href="{% url 'listar_pos' %}" class="hover:text-blue-400 transition">Lista de Pós</a>
               <a href="{% url 'trafilar_fio' %}" class="hover:text-blue-400 transition">Trefilar Fio</a>
               <a href="{% url 'listar_stock' %}" class="hover:text-blue-400 transition">Listar Stock Geral</a>

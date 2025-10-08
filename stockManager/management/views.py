@@ -365,6 +365,14 @@ def listar_fios(request):
                         user=request.user
                     )
 
+            updateFios.objects.create(
+                fio=fio_item,
+                previous_quantity=fio_item.quantity - (1 if 'increment' in request.POST else -1),
+                new_quantity=fio_item.quantity,
+                user=request.user,
+                action='added' if 'increment' in request.POST else 'removed'
+            )
+
             fio_item.save()
             fio_item.user = request.user
             fio_item.save()
@@ -416,6 +424,16 @@ def adicionarMaisde1Fio(request, fio_id):
                     data_uso=now(),
                     user=request.user
                 )
+
+            update_fio = updateFios(
+                fio=fio,
+                previous_quantity=fio.quantity - quantidade,
+                new_quantity=fio.quantity,
+                user=request.user,
+                action='added'
+            )
+            update_fio.save()
+            
 
             context['success'] = True
 
