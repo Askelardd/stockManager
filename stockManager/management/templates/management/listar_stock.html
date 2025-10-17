@@ -28,7 +28,7 @@
     </thead>
 
     <tbody class="text-gray-600 text-sm font-light">
-      {% for item in stock %}
+      {% for item in stock|dictsort:"product" %}
       <tr class="border-b border-gray-200 hover:bg-gray-100">
         <td class="py-3 px-6 text-left">
           {{ item.product }}

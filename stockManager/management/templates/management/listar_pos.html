@@ -19,7 +19,8 @@
                 <th class="py-3 px-6 text-left">Produto</th>
                 <th class="py-3 px-6 text-left">Referência</th>
                 <th class="py-3 px-6 text-left">stock Mínimo</th>
-                <th class="py-3 px-6 text-left">Quantidade</th>
+                <th class="py-3 px-6 text-left">Qnt</th>
+                <th class="py-3 px-2 text-left "></th>
                 <th class="py-3 px-6 text-left">Fornecedor</th>
                 <th class="py-3 px-6 text-left">Data Adicionada</th>
                 <th class="py-3 px-6 text-left">Última Atualização</th>
@@ -28,7 +29,7 @@
             </tr>
         </thead>
         <tbody class="text-gray-600 text-sm font-light">
-            {% for po in pos %}
+            {% for po in pos|dictsort:"reference" %}
             <tr class="border-b border-gray-200 hover:bg-gray-100">
                 <td class="py-3 px-6 text-left">{{ po.product }}</td>
                 <td class="py-3 px-6 text-left">{{ po.reference }}</td>
@@ -36,13 +37,15 @@
                 <td class="py-3 px-6 text-left">
                     <div class="flex items-center space-x-4">
                         <span class="font-medium">{{ po.quantity }}</span>
-                        <form method="POST" class="inline-block">
-                            {% csrf_token %}
-                            <input type="hidden" name="po_id" value="{{ po.id }}">
-                            <button type="submit" name="increment" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded shadow">+1</button>
-                            <button type="submit" name="decrement" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1 rounded shadow">-1</button>
-                        </form>
                     </div>
+                </td>
+                <td class="py-3 px-6 text-left">
+                  <form method="POST" class="inline-block">
+                      {% csrf_token %}
+                      <input type="hidden" name="po_id" value="{{ po.id }}">
+                      <button type="submit" name="increment" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded shadow">+1</button>
+                      <button type="submit" name="decrement" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1 rounded shadow">- 1</button>
+                  </form>
                 </td>
                 <td class="py-3 px-6 text-left">{{ po.fornecedor.nome }}</td>
                 <td class="py-3 px-6 text-left">{{ po.date_added|date:"d/m/Y H:i" }}</td>
@@ -57,7 +60,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" class="py-3 px-6 text-center">Nenhum pó encontrado.</td>
+                <td colspan="10" class="py-3 px-6 text-center">Nenhum pó encontrado.</td>
             </tr>
             {% endfor %}
         </tbody>

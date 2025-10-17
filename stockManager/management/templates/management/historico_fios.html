@@ -59,6 +59,15 @@
         </select>
       </div>
 
+      <div>
+        <label for="Tamanho" class="block text-sm font-medium text-gray-700 mb-1">Tamanho (mm)</label>
+          <select id="Tamanho" name="tamanho">
+            <option value="" {% if not tamanho_selecionado %}selected{% endif %}>Todos</option>
+            {% for t in tamanhos %}
+              <option value="{{ t }}" {% if tamanho_selecionado == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+      </div>
 
       <div class="md:col-span-6 flex items-center gap-3">
         <button type="submit"
@@ -106,12 +115,13 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="py-3 px-3 text-left text-xs font-semibold uppercase text-gray-600">Data</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Tipo</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Movimento</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Tamanho (mm)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Peso (g)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Material</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Qtd</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Stock Atual</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Stock</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Retirada de Stock</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Utilizador</th>
             </tr>
           </thead>
@@ -132,13 +142,13 @@
               <td class="px-3 py-3 text-sm font-semibold {% if r.direction == 'entrada' %}text-emerald-700{% else %}text-rose-700{% endif %}">
                 {% if r.direction == 'entrada' %}+{% else %}-{% endif %}{{ r.quantity }}
               </td>
-              <td class="px-3 py-3 text-sm">{{ r.current_stock|default:"-" }}</td>
-
+              <td class="px-3 py-3 text-sm">{{ r.previous_stock|default:"-" }}</td>
+              <td class="px-3 py-3 text-sm">{{ r.stock_after_movement|default:"-" }}</td>
               <td class="px-3 py-3 text-sm">{{ r.username|default:"-" }}</td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="py-5 text-center text-sm text-gray-500">Sem registos.</td>
+              <td colspan="10" class="py-5 text-center text-sm text-gray-500">Sem registos.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -158,6 +168,7 @@
               <th class="py-3 px-3 text-left text-xs font-semibold uppercase text-gray-600">Tamanho (mm)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Peso (g)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Material</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Existências</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Entradas</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saídas</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saldo</th>
@@ -169,6 +180,7 @@
               <td class="px-3 py-3 text-sm">{{ item.size|floatformat:4 }}</td>
               <td class="px-3 py-3 text-sm">{{ item.weight|floatformat:2 }}</td>
               <td class="px-3 py-3 text-sm capitalize">{{ item.material }}</td>
+              <td class="px-3 py-3 text-sm font-semibold">{{ item.existencias }}</td>
               <td class="px-3 py-3 text-sm font-semibold text-emerald-700">+{{ item.entradas }}</td>
               <td class="px-3 py-3 text-sm font-semibold text-rose-700">-{{ item.saidas }}</td>
               <td class="px-3 py-3 text-sm font-semibold">{{ item.saldo }}</td>

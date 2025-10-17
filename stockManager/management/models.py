@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 # ---------- Fornecedor ------------ #
 
 class Fornecedor(models.Model):
-    nome = models.CharField(max_length=40)
+    nome = models.CharField(max_length=200)
     ref_fornecedor = models.CharField(max_length=14, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     telefone = models.CharField(max_length=15, blank=True, null=True)
@@ -55,7 +55,7 @@ class updatePo(models.Model):
     ]
 
     po = models.ForeignKey(Po, on_delete=models.CASCADE)
-    previous_quantity = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     new_quantity = models.PositiveIntegerField()
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
@@ -67,6 +67,8 @@ class updatePo(models.Model):
 class poSaidas(models.Model):
     po = models.ForeignKey(Po, on_delete=models.CASCADE)
     quantity_used = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     date_used = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -76,6 +78,8 @@ class poSaidas(models.Model):
 class poEntradas(models.Model):
     po = models.ForeignKey(Po, on_delete=models.CASCADE)
     quantity_added = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_addition = models.IntegerField(null=True, blank=True, default=0)
     date_added = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -112,6 +116,7 @@ class FioUsado(models.Model):
     weight = models.DecimalField(max_digits=10, decimal_places=2)
     material = models.CharField(max_length=20)
     quantidade_usada = models.PositiveIntegerField()
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     data_uso = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -128,6 +133,7 @@ class updateFios(models.Model):
 
     fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
     previous_quantity = models.IntegerField()
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     new_quantity = models.IntegerField()
     date_updated = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
@@ -141,6 +147,7 @@ class updateFios(models.Model):
 class fioSaidas(models.Model):
     fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
     quantity_used = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     date_used = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -150,6 +157,7 @@ class fioSaidas(models.Model):
 class fioEntradas(models.Model):
     fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
     quantity_added = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     date_added = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -211,6 +219,8 @@ class StockSaidas(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
     quantity_removed = models.PositiveIntegerField()
     date_removed = models.DateTimeField(default=timezone.now)
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
@@ -225,6 +235,8 @@ class UpdateStock(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
     previous_quantity = models.IntegerField()
     new_quantity = models.IntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     date_updated = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
 
@@ -266,6 +278,8 @@ class UpdateAgulhas(models.Model):
 class AgulhasEntradas(models.Model):
     agulha = models.ForeignKey(Agulhas, on_delete=models.CASCADE)
     quantity_added = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     date_added = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -275,8 +289,35 @@ class AgulhasEntradas(models.Model):
 class AgulhasSaidas(models.Model):
     agulha = models.ForeignKey(Agulhas, on_delete=models.CASCADE)
     quantity_removed = models.PositiveIntegerField()
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
     date_removed = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return f"{self.user.username} removeu {self.quantity_removed} de {self.agulha} em {self.date_removed}"
+    
+class stockMaquinas(models.Model):
+
+    option_type = [
+        ('Yes', 'Yes'),
+        ('No', 'No'),
+        ('N/A', 'N/A'),
+    ]
+
+    machine_number = models.IntegerField(unique=True)
+    production_equipment = models.CharField(max_length=200)
+    model = models.CharField(max_length=200, blank=True, null=True)
+    purpose = models.CharField(max_length=200, blank=True, null=True)
+    defined_location = models.CharField(max_length=200, blank=True, null=True)
+    serial_number = models.CharField(max_length=200, blank=True, null=True)
+    manual = models.CharField(max_length=10, choices=option_type, blank=True, null=True)
+    certificado_ce = models.CharField(max_length=10, choices=option_type, blank=True, null=True)
+    fornecedor = models.ForeignKey(Fornecedor, on_delete=models.CASCADE, null=True, blank=True)
+    contact = models.CharField(max_length=200, blank=True, null=True)
+    manutenance_date = models.DateField(blank=True, null=True)
+    edited_at = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return f"Máquina {self.machine_number} - {self.model} - manutenção {self.manutenance_date}"

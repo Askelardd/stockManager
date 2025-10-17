@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, CategoriaProduto, updatePo, updateFios, poSaidas
+from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, CategoriaProduto, updatePo, updateFios, poSaidas, stockMaquinas
 from .models import poEntradas, Stock, StockEntradas, StockSaidas, UpdateStock, Agulhas, AgulhasEntradas, AgulhasSaidas, UpdateAgulhas, FioUsado
 
 # Register your models here.
@@ -31,6 +31,7 @@ class updateFiosAdmin(admin.ModelAdmin):
     list_display = ('fio', 'previous_quantity', 'new_quantity', 'date_updated', 'user')
     search_fields = ('fio__size', 'user__username')
     list_filter = ('date_updated', 'user')
+
 
 @admin.register(updatePo)
 class updatePoAdmin(admin.ModelAdmin):
@@ -114,3 +115,13 @@ class UpdateAgulhasAdmin(admin.ModelAdmin):
     list_display = ('agulha', 'previous_quantity', 'new_quantity', 'date_updated', 'action', 'user')
     search_fields = ('agulha__tipo', 'user__username')
     list_filter = ('action', 'date_updated', 'user')
+
+@admin.register(stockMaquinas)
+class stockMaquinasAdmin(admin.ModelAdmin):
+    list_display = (
+        'machine_number', 'production_equipment', 'model', 'purpose', 
+        'defined_location', 'serial_number', 'manual', 'certificado_ce', 
+        'fornecedor', 'contact', 'manutenance_date', 'edited_at', 'user'
+    )
+    search_fields = ('machine_number', 'model', 'serial_number', 'purpose', 'fornecedor__nome', 'user__username')
+    list_filter = ('defined_location', 'manual', 'certificado_ce', 'fornecedor', 'manutenance_date', 'edited_at', 'user')
