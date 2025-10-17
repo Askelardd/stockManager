@@ -1,0 +1,98 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Listar/Adicionar Máquinas{% endblock %}
+
+{% block content %}
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-2xl">
+        <h1 class="text-2xl font-bold mb-6 text-center">Editar Máquina</h1>
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="machine_number" class="block text-sm font-medium text-gray-700">Número da Máquina:</label>
+                <input type="text" id="machine_number" name="machine_number" value="{{ maquina.machine_number }}" required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="production_equipment" class="block text-sm font-medium text-gray-700">Equipamento de Produção:</label>
+                <input type="text" id="production_equipment" name="production_equipment" value="{{ maquina.production_equipment }}" required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="model" class="block text-sm font-medium text-gray-700">Modelo:</label>
+                <input type="text" id="model" name="model" value="{{ maquina.model }}" required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="purpose" class="block text-sm font-medium text-gray-700">Finalidade:</label>
+                <input type="text" id="purpose" name="purpose" value="{{ maquina.purpose }}" required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="defined_location" class="block text-sm font-medium text-gray-700">Localização Definida:</label>
+                <input type="text" id="defined_location" name="defined_location" value="{{ maquina.defined_location }}" required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="serial_number" class="block text-sm font-medium text-gray-700">Número de Série:</label>
+                <input type="text" id="serial_number" name="serial_number" value="{{ maquina.serial_number }}" required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="manual" class="block text-sm font-medium text-gray-700">Manual:</label>
+                <input type="text" id="manual" name="manual" value="{{ maquina.manual }}"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="certificado_ce" class="block text-sm font-medium text-gray-700">Certificado CE:</label>
+                <input type="text" id="certificado_ce" name="certificado_ce" value="{{ maquina.certificado_ce }}"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="fornecedor" class="block text-sm font-medium text-gray-700">Fornecedor:</label>
+                <select id="fornecedor" name="fornecedor"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Selecione um fornecedor</option>
+                    {% for fornecedor in fornecedores %}
+                        <option value="{{ fornecedor.id }}" {% if maquina.fornecedor and maquina.fornecedor.id == fornecedor.id %}selected{% endif %}>
+                            {{ fornecedor.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="contact" class="block text-sm font-medium text-gray-700">Contato:</label>
+                <input type="text" id="contact" name="contact" value="{{ maquina.contact }}"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="manutenance_date" class="block text-sm font-medium text-gray-700">Data de Manutenção:</label>
+                <input type="date" id="manutenance_date" name="manutenance_date" value="{{ maquina.manutenance_date|date:'Y-m-d' }}"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit"
+                    class="px-4 py-2 bg-blue-500 text-white font-medium rounded-md shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Salvar Alterações
+                </button>
+            </div>
+        </form>
+        <div class="mt-4 text-center">
+            <a href="{% url 'listar_adicionar_maquinas' %}" class="text-blue-500 hover:underline">Voltar à lista de máquinas</a>
+        </div>
+    </div>
+</body>
+{% endblock %}

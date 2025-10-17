@@ -12,6 +12,7 @@ urlpatterns = [
     path("menu_po/", views.menu_po, name="menu_po"),
     path("menu_agulhas/", views.menu_agulhas, name="menu_agulhas"),
     path("menu_fornecedor/", views.menu_fornecedor, name="menu_fornecedor"),
+    path("menu_maquinas/", views.menu_maquinas, name="menu_maquinas"),
 
     # Fios
     path('listar_fios/', views.listar_fios, name='listar_fios'),
@@ -48,6 +49,11 @@ urlpatterns = [
     path("remover_agulha/<int:agulha_id>/", views.remover_agulha, name="remover_agulha"),
     path("agulha/historico/", views.historico_agulhas, name="historico_agulhas"),
     path("nova_agulha/", views.nova_agulha, name="nova_agulha"),
+
+    # Maquinas
+    path('maquinas/', views.listar_e_adicionar_maquinas, name='listar_adicionar_maquinas'),
+    path('editar_maquina/<int:maquina_id>/', views.editar_maquina, name='editar_maquina'),
+    path('deletar_maquina/<int:maquina_id>/', views.deletar_maquina, name='deletar_maquina'),
 
     # Fornecedores
     path("criar_fornecedor/", views.criar_fornecedor, name="criar_fornecedor"),

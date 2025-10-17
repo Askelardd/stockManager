@@ -1,0 +1,151 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Listar/Adicionar Máquinas{% endblock %}
+
+{% block content %}
+
+
+<h1 class="text-2xl font-bold text-black mb-6">Lista de Máquinas</h1>
+<div class="flex justify-between items-center mb-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar Máquinas..."
+                 class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
+        <button type="button" id="openPopup" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow">
+                Adicionar Máquina
+        </button>
+</div>
+
+<div id="machineList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for maquina in maquinas|dictsort:"machine_number" %}
+        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">{{ maquina.machine_number }}</h2>
+                <div class="space-y-2">
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Equipamento de Produção:</span> {{ maquina.production_equipment }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Modelo:</span> {{ maquina.model }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Propósito:</span> {{ maquina.purpose }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Localização Definida:</span> {{ maquina.defined_location }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Número de Série:</span> {{ maquina.serial_number }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Manual:</span> {{ maquina.manual }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Certificado CE:</span> {{ maquina.certificado_ce }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Fornecedor:</span> {{ maquina.fornecedor.nome }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Contacto:</span> {{ maquina.contact }}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Data de Manutenção:</span> {% if maquina.manutenance_date %}{{ maquina.manutenance_date|date:"d/m/Y" }}{% else %}N/A{% endif %}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold">Data de edição:</span> {{ maquina.edited_at|date:"d/m/Y" }} por {{ maquina.user.username }}</p>
+                </div>
+
+                <div class="mt-6 flex justify-center space-x-4">
+                    <a href="{% url 'editar_maquina' maquina.id %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Editar
+                </a>    
+                    <a href="{% url 'deletar_maquina' maquina.id %}" 
+                        class="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Excluir
+                    </a>                  
+                </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center text-gray-500 italic">
+                Nenhuma máquina encontrada.
+        </div>
+        {% endfor %}
+</div>
+
+
+<div id="hiddenForm" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Adicionar Máquina</h2>
+            <button id="closePopup" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <input type="hidden" id="edit_id" name="edit_id" value="">
+
+        <form method="POST" action="{% url 'listar_adicionar_maquinas' %}">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="machine_number" class="block text-sm font-medium text-gray-700">Número Máquina</label>
+                    <input type="text" id="machine_number" name="machine_number" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="production_equipment" class="block text-sm font-medium text-gray-700">Equipamento de Produção</label>
+                    <input type="text" id="production_equipment" name="production_equipment" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="model" class="block text-sm font-medium text-gray-700">Modelo</label>
+                    <input type="text" id="model" name="model" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="purpose" class="block text-sm font-medium text-gray-700">Propósito</label>
+                    <input type="text" id="purpose" name="purpose" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="defined_location" class="block text-sm font-medium text-gray-700">Localização Definida</label>
+                    <input type="text" id="defined_location" name="defined_location" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="serial_number" class="block text-sm font-medium text-gray-700">Número de Série</label>
+                    <input type="text" id="serial_number" name="serial_number" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="manual" class="block text-sm font-medium text-gray-700">Manual</label>
+                    <input type="text" id="manual" name="manual" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="certificado_ce" class="block text-sm font-medium text-gray-700">Certificado CE</label>
+                    <input type="text" id="certificado_ce" name="certificado_ce" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="fornecedor" class="block text-sm font-medium text-gray-700">Fornecedor</label>
+                    <select name="fornecedor" id="fornecedor" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                    {% for f in fornecedores %}
+                        <option value="{{ f.id }}">{{ f.nome }}</option>
+                    {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="contact" class="block text-sm font-medium text-gray-700">Contacto</label>
+                    <input type="text" id="contact" name="contact" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="manutenance_date" class="block text-sm font-medium text-gray-700">Data de Manutenção</label>
+                    <input type="date" id="manutenance_date" name="manutenance_date" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log("Script carregado!");
+
+document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const machineList = document.getElementById('machineList');
+        const machines = machineList.querySelectorAll('div');
+
+        searchInput.addEventListener('input', function() {
+                const filter = searchInput.value.toLowerCase();
+                machines.forEach(machine => {
+                        const text = machine.textContent.toLowerCase();
+                        machine.style.display = text.includes(filter) ? '' : 'none';
+                });
+        });
+});
+
+    document.getElementById('openPopup').addEventListener('click', function() {
+        document.getElementById('hiddenForm').classList.remove('hidden');
+        
+    });
+
+    document.getElementById('closePopup').addEventListener('click', function() {
+        document.getElementById('hiddenForm').classList.add('hidden');
+    });
+
+
+</script>
+{% endblock %}
