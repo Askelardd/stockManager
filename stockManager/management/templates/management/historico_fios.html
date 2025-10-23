@@ -115,13 +115,12 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="py-3 px-3 text-left text-xs font-semibold uppercase text-gray-600">Data</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Movimento</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Tamanho (mm)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Peso (g)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Material</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Qtd</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Stock</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Retirada de Stock</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Movimento</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saldo</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Utilizador</th>
             </tr>
           </thead>
@@ -129,20 +128,13 @@
             {% for r in registos %}
             <tr class="hover:bg-gray-50">
               <td class="px-3 py-3 text-sm">{{ r.date|date:"Y-m-d H:i" }}</td>
-              <td class="px-3 py-3 text-sm">
-                {% if r.direction == 'entrada' %}
-                  <span class="bg-emerald-50 text-emerald-700 rounded-full px-2.5 py-0.5 text-xs font-semibold">Entrada</span>
-                {% else %}
-                  <span class="bg-rose-50 text-rose-700 rounded-full px-2.5 py-0.5 text-xs font-semibold">Saída</span>
-                {% endif %}
-              </td>
               <td class="px-3 py-3 text-sm">{{ r.fio_size|floatformat:4 }}</td>
               <td class="px-3 py-3 text-sm">{{ r.fio_weight|floatformat:2 }}</td>
               <td class="px-3 py-3 text-sm capitalize">{{ r.fio_material }}</td>
+              <td class="px-3 py-3 text-sm">{{ r.previous_stock|default:"-" }}</td>
               <td class="px-3 py-3 text-sm font-semibold {% if r.direction == 'entrada' %}text-emerald-700{% else %}text-rose-700{% endif %}">
                 {% if r.direction == 'entrada' %}+{% else %}-{% endif %}{{ r.quantity }}
               </td>
-              <td class="px-3 py-3 text-sm">{{ r.previous_stock|default:"-" }}</td>
               <td class="px-3 py-3 text-sm">{{ r.stock_after_movement|default:"-" }}</td>
               <td class="px-3 py-3 text-sm">{{ r.username|default:"-" }}</td>
             </tr>
@@ -168,10 +160,9 @@
               <th class="py-3 px-3 text-left text-xs font-semibold uppercase text-gray-600">Tamanho (mm)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Peso (g)</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Material</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Existências</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Entradas</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saídas</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Saldo</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase text-gray-600">Existências</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
@@ -180,10 +171,9 @@
               <td class="px-3 py-3 text-sm">{{ item.size|floatformat:4 }}</td>
               <td class="px-3 py-3 text-sm">{{ item.weight|floatformat:2 }}</td>
               <td class="px-3 py-3 text-sm capitalize">{{ item.material }}</td>
-              <td class="px-3 py-3 text-sm font-semibold">{{ item.existencias }}</td>
               <td class="px-3 py-3 text-sm font-semibold text-emerald-700">+{{ item.entradas }}</td>
               <td class="px-3 py-3 text-sm font-semibold text-rose-700">-{{ item.saidas }}</td>
-              <td class="px-3 py-3 text-sm font-semibold">{{ item.saldo }}</td>
+              <td class="px-3 py-3 text-sm font-semibold">{{ item.existencias }}</td>
             </tr>
             {% empty %}
             <tr>

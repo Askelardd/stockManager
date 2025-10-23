@@ -1,0 +1,39 @@
+{% extends 'management/base.html' %}
+{% block title %}Adicionar Agulhas{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Adicionar Agulhas</h1>
+    <p class="text-gray-600 mb-6">
+        Referência 
+        <span class="font-semibold">{{ agulha.tamanho }}</span>:
+    </p>
+
+    <form method="POST" action="{% url 'adicionar_agulha' agulha.id %}" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label for="num_field" class="block text-sm font-medium text-gray-700">Quantidade a adicionar</label>
+            <input 
+                type="number" 
+                name="num_field" 
+                id="num_field" 
+                placeholder="Quantidade a adicionar" 
+                required 
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            Adicionar
+        </button>
+        <button type="button" onclick="window.location.href='{% url 'listar_agulhas' %}'" class="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            Voltar
+        </button>
+    </form>
+
+    {% if success %}
+        <p class="mt-4 text-green-600 font-medium">{{ success }}</p>
+    {% elif error %}
+        <p class="mt-4 text-red-600 font-medium">{{ error }}</p>
+    {% endif %}
+</div>
+{% endblock %}

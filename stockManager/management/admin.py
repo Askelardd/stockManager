@@ -71,13 +71,13 @@ class StockAdmin(admin.ModelAdmin):
 
 @admin.register(StockEntradas)
 class StockEntradasAdmin(admin.ModelAdmin):
-    list_display = ('stock', 'quantity_added', 'date_added', 'user')
+    list_display = ('stock', 'quantity_added', 'date_added', 'user', 'descricao')
     search_fields = ('stock__product', 'user__username')
     list_filter = ('date_added', 'user')
 
 @admin.register(StockSaidas)
 class StockSaidasAdmin(admin.ModelAdmin):
-    list_display = ('stock', 'quantity_removed', 'date_removed', 'user')
+    list_display = ('stock', 'quantity_removed', 'date_removed', 'user', 'descricao')
     search_fields = ('stock__product', 'user__username')
     list_filter = ('date_removed', 'user')
 

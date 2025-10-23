@@ -420,7 +420,7 @@ def historico_po(request):
 
     resumo_por_po = []
     for v in resumo_map.values():
-        v["saldo"] = (v["existentes"] or 0) + (v["entradas"] or 0) - (v["saidas"] or 0)
+        v["saldo"] = (v["entradas"] or 0) - (v["saidas"] or 0)
         resumo_por_po.append(v)
 
     resumo_por_po.sort(key=lambda x: (x["product"], x["reference"]))
@@ -1324,12 +1324,16 @@ def listar_stock(request):
         if stock_id:
             stock_item = Stock.objects.get(id=stock_id)
             if 'increment' in request.POST:
+                previous_quantity = stock_item.quantity
                 stock_item.quantity += 1
+                stock_after_added = stock_item.quantity
+                
 
                 update_stock = UpdateStock.objects.create(
                     stock=stock_item,
                     previous_quantity=stock_item.quantity - 1,
                     new_quantity=stock_item.quantity,
+                    stock_after_use=stock_after_added,
                     action='added',
                     user=request.user
                 )
@@ -1337,15 +1341,21 @@ def listar_stock(request):
                 StockEntradas.objects.create(
                     stock=stock_item,
                     quantity_added=1,
+                    previous_quantity=previous_quantity,
+                    stock_after_added=stock_after_added,
                     user=request.user
                 )
 
             elif 'decrement' in request.POST:
+                previous_quantity = stock_item.quantity
                 stock_item.quantity -= 1
+                stock_after_use = stock_item.quantity
+
                 update_stock = UpdateStock.objects.create(
                     stock=stock_item,
-                    previous_quantity=stock_item.quantity + 1,
                     new_quantity=stock_item.quantity,
+                    previous_quantity=previous_quantity,
+                    stock_after_use=stock_after_use,
                     action='removed',
                     user=request.user
                 )
@@ -1364,6 +1374,8 @@ def listar_stock(request):
                 StockSaidas.objects.create(
                     stock=stock_item,
                     quantity_removed=1,
+                    previous_quantity=previous_quantity,
+                    stock_after_use=stock_after_use,
                     user=request.user
                 )
 
@@ -1386,16 +1398,19 @@ def adicionarStock(request, stock_id):
     if request.method == 'POST':
         try:
             quantidade = int(request.POST.get('num_field'))
+            descricao = request.POST.get('descricao_field', '').strip()
             if quantidade <= 0:
                 raise ValueError("A quantidade deve ser maior que zero.")
 
+            previous_quantity = stock.quantity
             stock.quantity += quantidade
+            stock_after_added = stock.quantity
             stock.user = request.user
             stock.save()
 
             UpdateStock.objects.create(
                 stock=stock,
-                previous_quantity=stock.quantity - quantidade,
+                previous_quantity= previous_quantity,
                 new_quantity=stock.quantity,
                 action='added',
                 user=request.user
@@ -1404,6 +1419,9 @@ def adicionarStock(request, stock_id):
             StockEntradas.objects.create(
                 stock=stock,
                 quantity_added=quantidade,
+                previous_quantity=previous_quantity,
+                descricao=descricao,
+                stock_after_added=stock_after_added,
                 user=request.user
             )
 
@@ -1423,17 +1441,20 @@ def removerStock(request, stock_id):
     if request.method == 'POST':
         try:
             quantidade = int(request.POST.get('num_field'))
+            descricao = request.POST.get('descricao_field', '').strip()
             if quantidade <= 0:
                 raise ValueError("A quantidade deve ser maior que zero.")
 
             # Atualiza a quantidade
+            previous_quantity = stock.quantity
             stock.quantity -= quantidade
             stock.user = request.user
+            stock_after_use = stock.quantity
             stock.save()
 
             UpdateStock.objects.create(
                 stock=stock,
-                previous_quantity=stock.quantity + quantidade,
+                previous_quantity=previous_quantity,
                 new_quantity=stock.quantity,
                 action='removed',
                 user=request.user
@@ -1442,6 +1463,9 @@ def removerStock(request, stock_id):
             StockSaidas.objects.create(
                 stock=stock,
                 quantity_removed=quantidade,
+                previous_quantity=previous_quantity,
+                descricao=descricao,
+                stock_after_use=stock_after_use,
                 user=request.user
             )
 
@@ -1502,10 +1526,12 @@ def historico_stock(request):
             direction=Value("entrada", output_field=CharField()),
             stock_product=F("stock__product"),
             current_stock=F("stock__quantity"),
+            prev_quantity=F("previous_quantity"),
+            stock_after_movement =F("stock_after_added"),
             categoria_nome=F("stock__categoria__nome"),
-            username=F("user__username"),
+            descricao_field=F("descricao"),
         )
-        .values("date", "quantity", "direction", "stock_product", "current_stock", "categoria_nome", "username")
+        .values("date", "quantity", "direction", "stock_product", "current_stock", "prev_quantity", "stock_after_movement", "categoria_nome", "descricao_field")
     )
 
     sai_norm = (sai
@@ -1516,9 +1542,11 @@ def historico_stock(request):
             stock_product=F("stock__product"),
             categoria_nome=F("stock__categoria__nome"),
             current_stock=F("stock__quantity"),
-            username=F("user__username"),
+            prev_quantity=F("previous_quantity"),
+            stock_after_movement =F("stock_after_use"),
+            descricao_field=F("descricao"),
         )
-        .values("date", "quantity", "direction", "stock_product", "current_stock", "categoria_nome", "username")
+        .values("date", "quantity", "direction", "stock_product", "current_stock", "prev_quantity", "stock_after_movement", "categoria_nome", "descricao_field")
     )
 
     if tipo == "entradas":
@@ -1543,21 +1571,41 @@ def historico_stock(request):
     entradas_por_prod = (ent.values("stock__product").annotate(total_ent=Sum("quantity_added")))
     saidas_por_prod   = (sai.values("stock__product").annotate(total_sai=Sum("quantity_removed")))
 
+    # 🔹 Existências atuais por produto
+    existencias = Stock.objects.all().values("product").annotate(total_exist=Sum("quantity"))
+
+    # criar um dicionário para lookup rápido
+    exist_map = {row["product"]: row["total_exist"] or 0 for row in existencias}
+
+    # 🔹 Resumo por produto
     resumo_map = {}
     for row in entradas_por_prod:
         k = row["stock__product"]
-        resumo_map[k] = {"product": k, "entradas": row["total_ent"] or 0, "saidas": 0}
+        resumo_map[k] = {
+            "product": k,
+            "entradas": row["total_ent"] or 0,
+            "saidas": 0,
+            "existencias": exist_map.get(k, 0),
+        }
+
     for row in saidas_por_prod:
         k = row["stock__product"]
         if k not in resumo_map:
-            resumo_map[k] = {"product": k, "entradas": 0, "saidas": row["total_sai"] or 0}
+            resumo_map[k] = {
+                "product": k,
+                "entradas": 0,
+                "saidas": row["total_sai"] or 0,
+                "existencias": exist_map.get(k, 0),
+            }
         else:
             resumo_map[k]["saidas"] = row["total_sai"] or 0
 
+    # 🔹 Criar lista final com saldo
     resumo_por_stock = []
     for v in resumo_map.values():
-        v["saldo"] = v["entradas"] - v["saidas"]
+        v["saldo"] = (v["existencias"] or 0) + (v["entradas"] or 0) - (v["saidas"] or 0)
         resumo_por_stock.append(v)
+
     resumo_por_stock.sort(key=lambda x: x["product"])
 
     users = User.objects.all().order_by("username")
@@ -1591,11 +1639,13 @@ def listar_agulhas(request):
         if agulha_id:
             agulha_item = Agulhas.objects.get(id=agulha_id)
             if 'increment' in request.POST:
+                previous_quantity = agulha_item.quantidade
                 agulha_item.quantidade += 1
+                stock_after_use = agulha_item.quantidade
 
-                update_agulha = UpdateAgulhas.objects.create(
+                UpdateAgulhas.objects.create(
                     agulha=agulha_item,
-                    previous_quantity=agulha_item.quantidade - 1,
+                    previous_quantity=previous_quantity,
                     new_quantity=agulha_item.quantidade,
                     action='added',
                     user=request.user
@@ -1603,15 +1653,19 @@ def listar_agulhas(request):
 
                 AgulhasEntradas.objects.create(
                     agulha=agulha_item,
+                    previous_quantity=previous_quantity,
                     quantity_added=1,
+                    stock_after_use=stock_after_use,
                     user=request.user
                 )
-
             elif 'decrement' in request.POST:
+                previous_quantity = agulha_item.quantidade
                 agulha_item.quantidade -= 1
-                update_agulha = UpdateAgulhas.objects.create(
+                stock_after_use = agulha_item.quantidade
+
+                UpdateAgulhas.objects.create(
                     agulha=agulha_item,
-                    previous_quantity=agulha_item.quantidade + 1,
+                    previous_quantity=previous_quantity,
                     new_quantity=agulha_item.quantidade,
                     action='removed',
                     user=request.user
@@ -1619,7 +1673,9 @@ def listar_agulhas(request):
 
                 AgulhasSaidas.objects.create(
                     agulha=agulha_item,
+                    previous_quantity=previous_quantity,
                     quantity_removed=1,
+                    stock_after_use=stock_after_use,
                     user=request.user
                 )
 
@@ -1643,13 +1699,15 @@ def adicionar_agulha(request, agulha_id):
             if quantidade <= 0:
                 raise ValueError("A quantidade deve ser maior que zero.")
 
+            previous_quantity = agulha.quantidade
             agulha.quantidade += quantidade
+            stock_after_use = agulha.quantidade
             agulha.user = request.user
             agulha.save()
 
             UpdateAgulhas.objects.create(
                 agulha=agulha,
-                previous_quantity=agulha.quantidade - quantidade,
+                previous_quantity=previous_quantity,
                 new_quantity=agulha.quantidade,
                 action='added',
                 user=request.user
@@ -1657,6 +1715,8 @@ def adicionar_agulha(request, agulha_id):
 
             AgulhasEntradas.objects.create(
                 agulha=agulha,
+                previous_quantity=previous_quantity,
+                stock_after_use=stock_after_use,
                 quantity_added=quantidade,
                 user=request.user
             )
@@ -1681,7 +1741,9 @@ def remover_agulha(request, agulha_id):
                 raise ValueError("A quantidade deve ser maior que zero.")
 
             # Atualiza a quantidade
+            previous_quantity = agulha.quantidade
             agulha.quantidade -= quantidade
+            stock_after_use = agulha.quantidade
             agulha.user = request.user
             agulha.save()
 
@@ -1695,7 +1757,9 @@ def remover_agulha(request, agulha_id):
 
             AgulhasSaidas.objects.create(
                 agulha=agulha,
+                previous_quantity=previous_quantity,
                 quantity_removed=quantidade,
+                stock_after_use=stock_after_use,
                 user=request.user
             )
 
@@ -1737,10 +1801,12 @@ def historico_agulhas(request):
             direction=Value("entrada", output_field=CharField()),
             agulha_tipo=F("agulha__tipo"),
             agulha_tamanho=F("agulha__tamanho"),
+            previous_stock=F("previous_quantity"),
+            stock_after_movement=F("stock_after_use"),
             current_stock=F("agulha__quantidade"),
             username=F("user__username"),
         )
-        .values("date", "quantity", "direction", "agulha_tipo", "agulha_tamanho", "current_stock", "username")
+        .values("date", "quantity", "direction", "agulha_tipo", "agulha_tamanho", "previous_stock", "stock_after_movement", "current_stock", "username")
     )
 
     sai_norm = (sai
@@ -1750,10 +1816,12 @@ def historico_agulhas(request):
             direction=Value("saida", output_field=CharField()),
             agulha_tipo=F("agulha__tipo"),
             agulha_tamanho=F("agulha__tamanho"),
+            previous_stock=F("previous_quantity"),
+            stock_after_movement=F("stock_after_use"),
             current_stock=F("agulha__quantidade"),
             username=F("user__username"),
         )
-        .values("date", "quantity", "direction", "agulha_tipo", "agulha_tamanho", "current_stock", "username")
+        .values("date", "quantity", "direction", "agulha_tipo", "agulha_tamanho", "previous_stock", "stock_after_movement", "current_stock", "username")
     )
 
     if tipo == "entradas":
@@ -1769,6 +1837,17 @@ def historico_agulhas(request):
     total_entradas = ent.aggregate(total=Sum("quantity_added"))["total"] or 0
     total_saidas   = sai.aggregate(total=Sum("quantity_removed"))["total"] or 0
 
+
+    # 🔹 Existências atuais por (tipo, tamanho)
+    existencias = (
+        Agulhas.objects
+        .values("tipo", "tamanho")
+        .annotate(total_exist=Sum("quantidade"))
+    )
+    # cria um dicionário para lookup rápido
+    exist_map = {(row["tipo"], row["tamanho"]): row["total_exist"] or 0 for row in existencias}
+
+    # 🔹 Totais listados
     if tipo == "entradas":
         total_listado = total_entradas
     elif tipo == "saidas":
@@ -1776,39 +1855,48 @@ def historico_agulhas(request):
     else:
         total_listado = None
 
-    # Resumo por (tipo, tamanho)
-    entradas_por_ag = (ent
-        .values("agulha__tipo", "agulha__tamanho")
+    # 🔹 Resumo por (tipo, tamanho)
+    entradas_por_ag = (
+        ent.values("agulha__tipo", "agulha__tamanho")
         .annotate(total_ent=Sum("quantity_added"))
     )
-    saidas_por_ag = (sai
-        .values("agulha__tipo", "agulha__tamanho")
+    saidas_por_ag = (
+        sai.values("agulha__tipo", "agulha__tamanho")
         .annotate(total_sai=Sum("quantity_removed"))
     )
 
     resumo_map = {}
+
     for row in entradas_por_ag:
         k = (row["agulha__tipo"], row["agulha__tamanho"])
         resumo_map[k] = {
-            "tipo": k[0], "tamanho": k[1],
-            "entradas": row["total_ent"] or 0, "saidas": 0
+            "tipo": k[0],
+            "tamanho": k[1],
+            "entradas": row["total_ent"] or 0,
+            "saidas": 0,
+            "existencias": exist_map.get(k, 0),
         }
+
     for row in saidas_por_ag:
         k = (row["agulha__tipo"], row["agulha__tamanho"])
         if k not in resumo_map:
             resumo_map[k] = {
-                "tipo": k[0], "tamanho": k[1],
-                "entradas": 0, "saidas": row["total_sai"] or 0
+                "tipo": k[0],
+                "tamanho": k[1],
+                "entradas": 0,
+                "saidas": row["total_sai"] or 0,
+                "existencias": exist_map.get(k, 0),
             }
         else:
             resumo_map[k]["saidas"] = row["total_sai"] or 0
 
+    # 🔹 Calcular saldo real
     resumo_por_agulha = []
     for v in resumo_map.values():
-        v["saldo"] = v["entradas"] - v["saidas"]
+        v["saldo"] = (v["existencias"] or 0) + (v["entradas"] or 0) - (v["saidas"] or 0)
         resumo_por_agulha.append(v)
 
-    # ordenar por tipo e tamanho
+    # 🔹 Ordenar por tipo e tamanho
     resumo_por_agulha.sort(key=lambda x: (x["tipo"], x["tamanho"]))
 
     users = User.objects.all().order_by("username")

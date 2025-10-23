@@ -210,6 +210,9 @@ class StockEntradas(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
     quantity_added = models.PositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
+    stock_after_added = models.IntegerField(null=True, blank=True, default=0)
+    descricao = models.CharField(max_length=100, blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
@@ -221,6 +224,8 @@ class StockSaidas(models.Model):
     date_removed = models.DateTimeField(default=timezone.now)
     previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     stock_after_use = models.IntegerField(null=True, blank=True, default=0)
+    descricao = models.CharField(max_length=100, blank=True, null=True)
+
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
@@ -233,7 +238,6 @@ class UpdateStock(models.Model):
     ]
 
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
-    previous_quantity = models.IntegerField()
     new_quantity = models.IntegerField()
     previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     stock_after_use = models.IntegerField(null=True, blank=True, default=0)
