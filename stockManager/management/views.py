@@ -50,6 +50,15 @@ def user_logout(request):
     messages.success(request, "Saiu da sua conta com sucesso!")
     return redirect('index')
 
+def error_403(request, exception=None):
+    return render(request, '403.html', status=403)
+
+def error_404(request, exception):
+    return render(request, '404.html', status=404)
+
+
+def stock_overview(request):
+    return redirect('http://192.168.1.112:18000')
 
 def login_view(request, user_id=None):
     user = get_object_or_404(User, id=user_id)
@@ -1937,6 +1946,7 @@ def novo_stock(request):
                 quantity=qty_init_int,
                 min_stock=int(min_stock),
                 fornecedor=fornecedor,
+                categoria=category,
                 user=request.user
             )
             messages.success(request, "Novo stock criado com sucesso.")

@@ -4,6 +4,9 @@ from django.conf.urls.static import static # type: ignore
 from stockManager import settings # type: ignore
 from . import views
 
+from management import views as management_views # type: ignore
+
+
 urlpatterns = [
     # Menus
     path("main_menu/", views.main_menu, name="main_menu"),
@@ -65,4 +68,11 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('login/<int:user_id>/', views.login_view, name='login'),
     path('logout/', views.user_logout, name='logout'),
+
+    # Erros
+    path('403/', views.error_403, name='error_403'),
+
+    #Stock pages
+    path('stock_overview/', views.stock_overview, name='stock_overview'),
 ]
+handler404 = management_views.error_404
