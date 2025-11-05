@@ -26,21 +26,23 @@
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <div class="flex items-center">
-            <a href="{% url 'main_menu' %}">
+            <a href="{% url 'main_menu' %}">  
             <img src="{% static 'management/media/logo.jpg' %}" alt="Logo" class="h-16 w-auto rounded border-1 border-black shadow-lg hover:opacity-80 transition">
             </a>
           </div>
           <!-- Links Desktop -->
             <div class="hidden md:flex space-x-6">
-            {% if request.user.is_authenticated %}
-              <a href="{% url 'main_menu' %}" class="hover:text-blue-400 transition">Menu Principal</a>
-              <a href="{% url 'listar_pos' %}" class="hover:text-blue-400 transition">Lista de Pós</a>
-              <a href="{% url 'trafilar_fio' %}" class="hover:text-blue-400 transition">Trefilar Fio</a>
-              <a href="{% url 'listar_stock' %}" class="hover:text-blue-400 transition">Listar Stock Geral</a>
-              <a href="{% url 'criar_fornecedor' %}" class="hover:text-blue-400 transition">Criar Fornecedor</a>
-              <a href="{% url 'logout' %}" class="ml-4 px-3 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
-            {% else %}
-            {% endif %}
+              {% if request.user.is_authenticated %}
+                <a href="{% url 'main_menu' %}" class="hover:text-blue-400 transition">Menu Principal</a>
+                <a href="{% url 'listar_pos' %}" class="hover:text-blue-400 transition">Lista de Pós</a>
+                <a href="{% url 'trafilar_fio' %}" class="hover:text-blue-400 transition">Trefilar Fio</a>
+                <a href="{% url 'listar_stock' %}" class="hover:text-blue-400 transition">Listar Stock Geral</a>
+                <a href="{% url 'criar_fornecedor' %}" class="hover:text-blue-400 transition">Criar Fornecedor</a>
+                <a href="{% url 'logout' %}" class="ml-4 px-3 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
+              {% else %}
+                <a href="{% url 'index' %}" class="ml-4 px-3 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600 transition shadow-lg border border-blue-700">Login</a>
+                <a href="http://192.168.1.112:18000" class="ml-4 px-3 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600 transition shadow-lg border border-blue-700">Sistema Stock</a>
+              {% endif %}
             </div>
           <!-- Botão Mobile -->
           <div class="md:hidden">

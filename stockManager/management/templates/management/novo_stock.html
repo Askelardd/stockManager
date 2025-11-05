@@ -36,13 +36,13 @@
         <div>
             <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
             <select id="category" name="category"
-                    class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
-                <option value="" disabled {% if not form.category %}selected{% endif %}>Selecione…</option>
-                {% for c in category %}
-                    <option value="{{ c.id }}" {% if form.category == c.id|stringformat:"s" %}selected{% endif %}>
-                        {{ c.nome }}
-                    </option>
-                {% endfor %}
+              class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500" required>
+          <option value="" disabled {% if not form.category %}selected{% endif %}>Selecione…</option>
+          {% for c in category|dictsort:"nome" %}
+              <option value="{{ c.id }}" {% if form.category == c.id|stringformat:"s" %}selected{% endif %}>
+            {{ c.nome }}
+              </option>
+          {% endfor %}
             </select>
         </div>
 

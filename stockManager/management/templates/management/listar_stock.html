@@ -38,11 +38,11 @@
             {{ item.categoria.nome|default:"—" }}   
         </td>
 
-        <!-- <td class="py-3 px-6 text-left">
+        <td class="py-3 px-6 text-left">
           <div class="flex items-center gap-3">
             <span class="font-medium">{{ item.quantity }}</span>
 
-            <form method="post" class="inline-flex items-center gap-2">
+            <!-- <form method="post" class="inline-flex items-center gap-2">
               {% csrf_token %}
               <input type="hidden" name="stock_id" value="{{ item.id }}">
               <button type="submit" name="increment"
@@ -53,9 +53,9 @@
                       class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
                 -1
               </button>
-            </form>
+            </form> -->
           </div>
-        </td> -->
+        </td>
 
         <td class="py-3 px-6 text-left">
           {{ item.min_stock }}

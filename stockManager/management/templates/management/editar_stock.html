@@ -48,7 +48,7 @@
             <select id="category" name="category" required
                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm !text-gray-900">
                 <option class="!text-gray-900" value="">Selecione uma categoria</option>
-                {% for c in category %}
+                {% for c in category|dictsort:"nome" %}
                 <option class="!text-gray-900"
                         value="{{ c.id }}"
                         {% if c.id == stock.categoria.id %}selected{% endif %}>
