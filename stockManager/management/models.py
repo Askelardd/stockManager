@@ -1,7 +1,24 @@
+from decimal import InvalidOperation
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from decimal import Decimal, InvalidOperation
+from django.core.exceptions import ValidationError 
 
+
+# --------- Decimal Field Personalized ------------ #
+
+
+    
+class FlexibleDecimalField(models.DecimalField):
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = value.replace(',', '.')
+        try:
+            return super().to_python(value)
+        except (InvalidOperation, ValueError):
+            return None
+        
 
 # ---------- Fornecedor ------------ #
 
@@ -95,9 +112,9 @@ class Fios(models.Model):
         ('aco', 'Aço'),
     ]
 
-    size = models.DecimalField(max_digits=10, decimal_places=4)
-    weight = models.DecimalField(max_digits=10, decimal_places=2)
-    weight_unit = models.DecimalField(max_digits=10, decimal_places=2)
+    size = FlexibleDecimalField(max_digits=10, decimal_places=4)
+    weight = FlexibleDecimalField(max_digits=10, decimal_places=2)
+    weight_unit = FlexibleDecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField()
     material = models.CharField(max_length=20, choices=material, default='cobre')
     min_stock = models.IntegerField(null=True, blank=True)
@@ -112,8 +129,8 @@ class Fios(models.Model):
     
 class FioUsado(models.Model):
     fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
-    size = models.DecimalField(max_digits=10, decimal_places=4)
-    weight = models.DecimalField(max_digits=10, decimal_places=2)
+    size = FlexibleDecimalField(max_digits=10, decimal_places=4)
+    weight = FlexibleDecimalField(max_digits=10, decimal_places=2)
     material = models.CharField(max_length=20)
     quantidade_usada = models.PositiveIntegerField()
     stock_after_use = models.IntegerField(null=True, blank=True, default=0)
@@ -166,9 +183,9 @@ class fioEntradas(models.Model):
     
 class FioTransformacao(models.Model):
     origem = models.ForeignKey('Fios', on_delete=models.PROTECT, related_name='transformacoes_origem')
-    total_transferido = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    peso_origem_antes = models.DecimalField(max_digits=12, decimal_places=2)
-    peso_origem_depois = models.DecimalField(max_digits=12, decimal_places=2)
+    total_transferido = FlexibleDecimalField(max_digits=12, decimal_places=2, default=0)
+    peso_origem_antes = FlexibleDecimalField(max_digits=12, decimal_places=2)
+    peso_origem_depois = FlexibleDecimalField(max_digits=12, decimal_places=2)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -178,7 +195,7 @@ class FioTransformacao(models.Model):
 class FioTransformacaoItem(models.Model):
     transformacao = models.ForeignKey(FioTransformacao, on_delete=models.CASCADE, related_name='itens')
     destino = models.ForeignKey('Fios', on_delete=models.PROTECT, related_name='transformacoes_destino')
-    peso_adicionado = models.DecimalField(max_digits=12, decimal_places=2)
+    peso_adicionado = FlexibleDecimalField(max_digits=12, decimal_places=2)
 
     def __str__(self):
         return f"{self.peso_adicionado}g → {self.destino.size}mm (T#{self.transformacao_id})"
@@ -254,7 +271,7 @@ class UpdateStock(models.Model):
 
 class Agulhas(models.Model):
     tipo = models.CharField(max_length=100)
-    tamanho = models.DecimalField(max_digits=10, decimal_places=2)
+    tamanho = FlexibleDecimalField(max_digits=10, decimal_places=2)
     quantidade = models.IntegerField()
     fornecedor = models.ForeignKey(Fornecedor, on_delete=models.CASCADE, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)

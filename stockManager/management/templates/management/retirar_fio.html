@@ -1,0 +1,31 @@
+{% extends 'management/base.html' %}
+{% block title %}Retirar Fio{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Retirar Fio</h1>
+    <p class="text-gray-600 mb-6">
+        Diametro fio 
+        <span class="font-semibold">{{ fio.size }} de {{ fio.material }}</span>:
+    </p>
+
+    <form method="POST" action="{% url 'retirar_fio' fio.id %}" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <p class="mt-2 text-sm text-gray-500">Peso disponível: {{ fio.weight }} g</p>
+
+            <label for="Peso" class="block text-sm font-medium text-gray-700">Peso que deseja retirar</label>
+            <input type="decimal" name="Peso" id="Peso" placeholder="Peso a retirar" required 
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >
+
+        </div>
+
+        <div class="flex justify-end space-x-4">
+            <a href="{% url 'listar_fios' %}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Cancelar</a>
+            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Retirar Fio</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -90,29 +90,33 @@ def novo_fio(request):
         min_stock = request.POST.get('min_stock', '0')
         fornecedor_id = request.POST.get('fornecedor')
 
-        # validações simples
-        try:
-            fornecedor = Fornecedor.objects.get(id=fornecedor_id)
-        except Fornecedor.DoesNotExist:
-            messages.error(request, "Fornecedor inválido.")
-            return render(request, 'management/novo_fio.html', {
-                'fornecedores': fornecedores,
-                'material_choices': material_choices,
-                'form': request.POST,
-            })
+        fornecedor = None
+        if fornecedor_id:
+            try:
+                fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+            except Fornecedor.DoesNotExist:
+                messages.error(request, "Fornecedor inválido.")
+                return render(request, 'management/novo_fio.html', {
+                    'fornecedores': fornecedores,
+                    'material_choices': material_choices,
+                    'form': request.POST,
+                })
 
-        existente = Fios.objects.filter(
-            material=material,
-            size=size
-            ).first()
+        # The following code block is commented out as it checks for the existence of a similar Fio
+        # and prevents the creation of a duplicate. Uncomment if this behavior is desired.
 
-        if existente:
-            messages.info(request, f"O Fio {existente.size}mm com o material {existente.material} já existe.")
-            return render(request, 'management/novo_fio.html', {
-                'fornecedores': fornecedores,
-                'material_choices': material_choices,
-                'form': request.POST,
-            })
+        # existente = Fios.objects.filter(
+        #     material=material,
+        #     size=size
+        # ).first()
+
+        # if existente:
+        #     messages.info(request, f"O Fio {existente.size}mm com o material {existente.material} já existe.")
+        #     return render(request, 'management/novo_fio.html', {
+        #         'fornecedores': fornecedores,
+        #         'material_choices': material_choices,
+        #         'form': request.POST,
+        #     })
 
         try:
             size_dec = Decimal(size)
@@ -125,7 +129,7 @@ def novo_fio(request):
                 raise InvalidOperation("Peso não pode ser negativo.")
             if quantity_int < 0 or min_stock_int < 0:
                 raise InvalidOperation("Quantidade/Stock mínimo não podem ser negativos.")
-            
+
             weight_unit = weight_dec / quantity_int if quantity_int > 0 else Decimal('0')  # Calcula weight_unit
 
         except (InvalidOperation, ValueError):
@@ -613,43 +617,105 @@ def adicionarMaisde1Fio(request, fio_id):
 
     return render(request, 'management/adicionar_fio.html', context)
 
-@login_required
-def removerFio(request, fio_id):
+def editar_fio(request, fio_id):
     fio = get_object_or_404(Fios, pk=fio_id)
+
+    # 🟢 Converter valores ANTES de mostrar no formulário
+    fio.weight = str(fio.weight).replace(',', '.')
+    fio.weight_unit = str(fio.weight_unit).replace(',', '.')
+
     context = {'fio': fio}
 
     if request.method == 'POST':
+        peso = request.POST.get('peso')
+        quantidade = request.POST.get('quantidade', '0')
+        peso_unit = request.POST.get('peso_unit', '0')
+        min_stock = request.POST.get('min_stock', '0')
+
+        # 🟢 Convertendo vírgulas enviadas pelo user também
+        peso = peso.replace(',', '.')
+        peso_unit = peso_unit.replace(',', '.')
+
         try:
-            quantidade = int(request.POST.get('num_field'))
-            if quantidade <= 0:
-                raise ValueError("A quantidade deve ser maior que zero.")
+            peso_dec = Decimal(peso.strip()) if peso.strip() else Decimal('0')
+            quantidade_int = int(quantidade.strip()) if quantidade.strip() else 0
+            peso_unit_dec = Decimal(peso_unit.strip()) if peso_unit.strip() else Decimal('0')
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Por favor, insira valores numéricos válidos para peso, quantidade e peso unitário.")
+            return redirect(request.path)
 
-            # Atualiza a quantidade
-            previous_quantity = fio.quantity
-            fio.quantity -= quantidade
-            stock_after_use = fio.quantity
-            fio.user = request.user
-            fio.weight -= fio.weight_unit * quantidade
-            fio.save()
+        if peso_dec < 0 or quantidade_int < 0 or peso_unit_dec < 0:
+            messages.error(request, "Valores não podem ser negativos.")
+            return redirect(request.path)
 
-            update_fio = updateFios(
+        if quantidade_int == 0:
+            quantidade_int = int(request.POST.get('quantidade_atual', fio.quantity))
+
+        if peso_unit == '0' or peso_unit.strip() == '':
+            peso_unit_dec = peso_dec / quantidade_int if quantidade_int > 0 else Decimal('0')
+
+        fio.weight = peso_dec
+        fio.quantity = quantidade_int
+        fio.weight_unit = peso_unit_dec
+        fio.user = request.user
+        fio.min_stock = int(min_stock)
+        fio.save()
+
+        messages.success(request, "Fio atualizado com sucesso!")
+        return redirect('listar_fios')
+
+    return render(request, 'management/editar_fio.html', context)
+
+
+def retirar_fio(request, fio_id):
+    fio = get_object_or_404(Fios, pk=fio_id)
+
+    if request.method == 'POST':
+        peso = request.POST.get('Peso', '').strip()  
+
+        if not peso:
+            messages.error(request, "O campo 'Peso' é obrigatório.")
+            return redirect(request.path)
+
+        try:
+            peso_dec = Decimal(peso)
+        except InvalidOperation:
+            messages.error(request, "Valor de peso inválido.")
+            return redirect(request.path)
+        
+        try:
+            new_weight_unit = (fio.weight - peso_dec) / (fio.quantity - 1) if (fio.quantity - 1) > 0 else Decimal('0')
+        except InvalidOperation:
+            messages.error(request, "Operação inválida ao calcular peso unitário.")
+            return redirect(request.path)
+        
+        try:
+            if fio.quantity > 0:
+                fio.weight = fio.weight - peso_dec
+                fio.weight_unit = new_weight_unit
+                fio.quantity -= 1
+                fio.user = request.user
+                fio.save()
+
+            FioUsado.objects.create(
                 fio=fio,
-                previous_quantity=fio.quantity + quantidade,
-                stock_after_use=stock_after_use,
-                new_quantity=fio.quantity,
-                user=request.user,
-                action='removed'
+                size=fio.size,
+                weight=peso_dec,
+                material=fio.material,
+                quantidade_usada=1,
+                stock_after_use=fio.quantity,
+                data_uso=now(),
+                user=request.user
             )
-            update_fio.save()
-
-            context['success'] = True
-
+            messages.success(request, "Fio retirado com sucesso!")
             return redirect('listar_fios')
 
-        except ValueError:
-            context['error'] = "Por favor, insira um número válido maior que zero."
+        except InvalidOperation:
+            messages.error(request, "Valor de peso inválido.")
+            return redirect(request.path)
 
-    return render(request, 'management/remover_fio.html', context)
+    return render(request, 'management/retirar_fio.html', {'fio': fio})
+
 @login_required
 def listar_updates_fios(request):
     updates = updateFios.objects.all()
@@ -1227,7 +1293,7 @@ def criar_fio_rapido(request):
     quantity_init = request.POST.get('quantity') or '0'
 
     try:
-        fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+        fornecedor = Fornecedor.objects.get(id=fornecedor_id) if fornecedor_id else None
         size = Decimal(size_str)
         if size <= 0:
             raise InvalidOperation("Tamanho inválido.")
@@ -1235,7 +1301,6 @@ def criar_fio_rapido(request):
         existente = Fios.objects.filter(
             material=origem.material,
             size=size
-            
         ).first()
 
         if existente:

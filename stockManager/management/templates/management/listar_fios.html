@@ -24,7 +24,6 @@
                 <th class="py-3 px-6 text-left">Peso/Unidade</th>
                 <th class="py-3 px-6 text-left">stock Mínimo</th>
                 <th class="py-3 px-6 text-left">Quantidade</th>
-                <th class="py-3 px-6 text-left">Fornecedor</th>
                 <th class="py-3 px-6 text-left">Última Atualização</th>
                 <th class="py-3 px-6 text-left">Atualizado por</th>
                 <th class="py-3 px-6 text-center">Ações</th>
@@ -64,9 +63,6 @@
                 </div>
             </td>
             <td class="py-3 px-6 text-left">
-                {{ fio.fornecedor.nome }}
-            </td>
-            <td class="py-3 px-6 text-left">
                 {{ fio.updated_at|date:"d/m/Y H:i" }}
             </td>
             <td class="py-3 px-6 text-left">
@@ -78,15 +74,19 @@
                     Adicionar
                 </a>
 
-                <a href="{% url 'remover_fio' fio.id %}" class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
-                    Remover
+                <a href="{% url 'editar_fio' fio.id %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-2 py-1 rounded shadow inline-block whitespace-nowrap">
+                    Editar Peso
+                </a>
+
+                <a href="{% url 'retirar_fio' fio.id %}" class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow inline-block whitespace-nowrap">
+                    Retirar Peso
                 </a>
                 </div>
             </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="10" class="py-3 px-6 text-center">Nenhum fio encontrado.</td>
+                <td colspan="9" class="py-3 px-6 text-center">Nenhum fio encontrado.</td>
             </tr>
             {% endfor %}
         </tbody>
