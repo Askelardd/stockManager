@@ -20,7 +20,8 @@ urlpatterns = [
     # Fios
     path('listar_fios/', views.listar_fios, name='listar_fios'),
     path('fio/<int:fio_id>/adicionar/', views.adicionarMaisde1Fio, name='adicionar_fio'),
-    path('fio/<int:fio_id>/remover/', views.removerFio, name='remover_fio'),
+    path('fio/<int:fio_id>/editar/', views.editar_fio, name='editar_fio'),
+    path('fio/<int:fio_id>/retirar/', views.retirar_fio, name='retirar_fio'),
     path('fios/trafilar/', views.trafilar_fio, name='trafilar_fio'),
     path('fios/criar-rapido/', views.criar_fio_rapido, name='criar_fio_rapido'),
     path('fios/historico/', views.historico_fios, name='historico_fios'),
