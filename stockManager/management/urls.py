@@ -74,6 +74,9 @@ urlpatterns = [
     path('403/', views.error_403, name='error_403'),
 
     #Stock pages
-    path('stock_overview/', views.stock_overview, name='stock_overview'),
+    path('transportinfo/', views.transportinfo, name='transportinfo'),
+
+    # Charts and Analytics
+    path('charts/', views.charts, name='charts'),
 ]
 handler404 = management_views.error_404
