@@ -5,6 +5,7 @@
     <title>{% block title %}Toma Tools{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
     {% load static %}
     <link rel="icon" type="image/jpg" href="{% static 'management/media/logoToma.jpg' %}">
 
@@ -100,6 +101,8 @@
       });
     </script>
 
-{% block extra_js %}{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/flowbite.min.js' %}"></script>
+{% endblock %}
 </body>
 </html>

@@ -8,7 +8,8 @@ from django.contrib.auth import authenticate, login as auth_login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from django.db.models import F, Sum, Value, CharField, IntegerField
+from django.db.models import F, Sum, Value, CharField
+from django.db.models.functions import TruncMonth
 from django.db import transaction
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
@@ -18,6 +19,8 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.utils import timezone
 from django.conf import settings
+from django.db.models import Count
+
 
 
 def index(request):
@@ -57,8 +60,8 @@ def error_404(request, exception):
     return render(request, '404.html', status=404)
 
 
-def stock_overview(request):
-    return redirect('http://192.168.1.112:18000')
+def transportinfo(request):
+    return redirect('http://192.168.1.112:8000')
 
 def login_view(request, user_id=None):
     user = get_object_or_404(User, id=user_id)
@@ -617,6 +620,7 @@ def adicionarMaisde1Fio(request, fio_id):
 
     return render(request, 'management/adicionar_fio.html', context)
 
+@login_required
 def editar_fio(request, fio_id):
     fio = get_object_or_404(Fios, pk=fio_id)
 
@@ -666,7 +670,7 @@ def editar_fio(request, fio_id):
 
     return render(request, 'management/editar_fio.html', context)
 
-
+@login_required
 def retirar_fio(request, fio_id):
     fio = get_object_or_404(Fios, pk=fio_id)
 
@@ -2135,6 +2139,7 @@ def listar_fornecedores(request):
     fornecedores = Fornecedor.objects.all().order_by('nome')
     return render(request, 'management/listar_fornecedores.html', {'fornecedores': fornecedores})
 
+@login_required
 def editar_fornecedor(request, fornecedor_id):
     fornecedor = get_object_or_404(Fornecedor, pk=fornecedor_id)
 
@@ -2159,6 +2164,7 @@ def editar_fornecedor(request, fornecedor_id):
 
     return render(request, 'management/editar_fornecedor.html', {'fornecedor': fornecedor})
 
+@login_required
 def deletar_fornecedor(request, fornecedor_id):
     fornecedor = get_object_or_404(Fornecedor, pk=fornecedor_id)
 
@@ -2169,7 +2175,7 @@ def deletar_fornecedor(request, fornecedor_id):
 
     return render(request, 'management/deletar_fornecedor.html', {'fornecedor': fornecedor})
 
-
+@login_required
 def listar_e_adicionar_maquinas(request):
     maquinas = stockMaquinas.objects.all()
 
@@ -2231,7 +2237,7 @@ def listar_e_adicionar_maquinas(request):
 
     return render(request, 'management/listar_adicionar_maquina.html', {'maquinas': maquinas, 'fornecedores': Fornecedor.objects.all()})
 
-
+@login_required
 def deletar_maquina(request, maquina_id):
     maquina = get_object_or_404(stockMaquinas, pk=maquina_id)
 
@@ -2242,6 +2248,7 @@ def deletar_maquina(request, maquina_id):
 
     return render(request, 'management/deletar_maquina.html', {'maquina': maquina})
 
+@login_required
 def editar_maquina(request, maquina_id):
     maquina = get_object_or_404(stockMaquinas, pk=maquina_id)
 
@@ -2268,3 +2275,126 @@ def editar_maquina(request, maquina_id):
 
     return render(request, 'management/editar_maquina.html', {'maquina': maquina, 'fornecedores': Fornecedor.objects.all()})
     
+def charts(request):
+    try:
+        days_range = int(request.GET.get('days', 7))
+    except ValueError:
+        days_range = 7
+        
+    if days_range not in [7, 30, 90, 365]:
+        days_range = 7
+
+    today = timezone.now().date()
+    start_date = today - timedelta(days=days_range)
+    
+    chart_series = []
+    date_labels = []
+    
+    # --- LÓGICA DE AGREGAÇÃO ---
+    
+    # CASO 1: 365 Dias (Agrupamento Mensal)
+    if days_range == 365:
+        # Usa TruncMonth para agrupar pela base de dados (muito rápido)
+        raw_data = poSaidas.objects.filter(
+            date_used__date__range=[start_date, today],
+            quantity_used__gt=0  # Filtra movimentos a 0
+        ).annotate(
+            period=TruncMonth('date_used')
+        ).values('user__username', 'period').annotate(total=Sum('quantity_used')).order_by('period')
+
+        # Gerar lista de meses para o eixo X
+        current = start_date.replace(day=1)
+        months_periods = []
+        while current <= today:
+            months_periods.append(current)
+            current = (current + timedelta(days=32)).replace(day=1)
+            
+        date_labels = [d.strftime('%b %Y') for d in months_periods]
+        
+        data_map = {}
+        users_found = set()
+        for entry in raw_data:
+            username = entry['user__username'] or 'Desconhecido'
+            users_found.add(username)
+            d_date = entry['period'].date() if hasattr(entry['period'], 'date') else entry['period']
+            data_map[(username, d_date)] = entry['total']
+
+        for username in users_found:
+            data_points = []
+            for m_date in months_periods:
+                qty = data_map.get((username, m_date), 0)
+                data_points.append(qty)
+            
+            # Só adiciona se o utilizador tiver de facto consumo total > 0
+            if sum(data_points) > 0:
+                chart_series.append({'name': username, 'data': data_points})
+
+    # CASO 2: 90 Dias (Agrupamento Quinzenal - 2 semanas)
+    elif days_range == 90:
+        raw_data = poSaidas.objects.filter(
+            date_used__date__range=[start_date, today],
+            quantity_used__gt=0  # Filtra movimentos a 0
+        ).values('user__username', 'date_used__date').annotate(total=Sum('quantity_used'))
+
+        periods = []
+        current = start_date
+        while current <= today:
+            periods.append(current)
+            current += timedelta(days=14)
+            
+        date_labels = [f"{d.strftime('%d/%m')}" for d in periods]
+        
+        user_buckets = {} 
+        
+        for entry in raw_data:
+            username = entry['user__username'] or 'Desconhecido'
+            entry_date = entry['date_used__date']
+            qty = entry['total']
+            
+            if username not in user_buckets:
+                user_buckets[username] = [0] * len(periods)
+            
+            delta = (entry_date - start_date).days
+            bucket_index = int(delta // 14)
+            
+            if 0 <= bucket_index < len(periods):
+                user_buckets[username][bucket_index] += qty
+
+        for username, data_points in user_buckets.items():
+            # Só adiciona se o utilizador tiver de facto consumo total > 0
+            if sum(data_points) > 0:
+                chart_series.append({'name': username, 'data': data_points})
+
+    # CASO 3: 7 ou 30 Dias (Diário)
+    else:
+        dates_list = [today - timedelta(days=i) for i in range(days_range - 1, -1, -1)]
+        date_labels = [d.strftime('%d %b') for d in dates_list]
+        
+        raw_data = poSaidas.objects.filter(
+            date_used__date__range=[dates_list[0], today],
+            quantity_used__gt=0  # Filtra movimentos a 0
+        ).values('user__username', 'date_used__date').annotate(total=Sum('quantity_used'))
+
+        data_map = {}
+        users_found = set()
+        for entry in raw_data:
+            username = entry['user__username'] or 'Desconhecido'
+            users_found.add(username)
+            data_map[(username, entry['date_used__date'])] = entry['total']
+
+        for username in users_found:
+            data_points = []
+            for d in dates_list:
+                data_points.append(data_map.get((username, d), 0))
+            
+            # Só adiciona se o utilizador tiver de facto consumo total > 0
+            if sum(data_points) > 0:
+                chart_series.append({'name': username, 'data': data_points})
+
+    context = {
+        'chart_data': chart_series,
+        'chart_dates': date_labels,
+        'current_range': days_range,
+    }
+    
+    return render(request, 'management/charts_analitics.html', context)
