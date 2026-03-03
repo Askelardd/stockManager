@@ -165,6 +165,78 @@ def novo_fio(request):
     })
 
 @login_required
+def editar_pos_inline(request, po_id):
+    print("Received POST data for editing PO")
+
+    if request.method == "POST":
+        po = get_object_or_404(Po, id=po_id)
+
+        fornecedor_id = request.POST.get("fornecedor")
+        if fornecedor_id:
+            try:
+                po.fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+            except Fornecedor.DoesNotExist:
+                messages.error(request, "Fornecedor inválido.")
+                return redirect('listar_pos')
+
+        po.product = request.POST.get("product") or po.product
+        
+        # Adicionei a referência, caso queiras permitir a edição dela também
+        po.reference = request.POST.get("reference") or po.reference 
+        
+        po.min_stock = int(request.POST.get("min_stock") or po.min_stock)
+        po.user = request.user
+        po.updated_at = timezone.now()
+
+        print(f"Updating PO {po.id}: product={po.product}, reference={po.reference}, fornecedor={po.fornecedor}, min_stock={po.min_stock}")
+        po.save()
+
+        messages.success(request, "PO atualizado com sucesso!")
+    return redirect('listar_pos')
+
+@login_required
+def criar_po(request):
+    if request.method == 'POST':
+        product = (request.POST.get('product') or '').strip()
+        quantity = request.POST.get('quantity', '0')
+        reference = (request.POST.get('reference') or '').strip()
+        fornecedor_id = request.POST.get('fornecedor')
+        min_stock = request.POST.get('min_stock', '0')
+
+        if not product or not reference:
+            messages.error(request, "Produto e Referência são obrigatórios.")
+            return redirect('listar_pos')
+
+
+        fornecedor = None
+        if fornecedor_id:
+            try:
+                fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+            except Fornecedor.DoesNotExist:
+                messages.error(request, "Fornecedor inválido.")
+                return redirect('listar_pos')
+
+        try:
+            quantity_int = int(quantity)
+            min_stock_int = int(min_stock)
+            if quantity_int < 0 or min_stock_int < 0:
+                raise ValueError("Quantidade/Stock mínimo não podem ser negativos.")
+        except ValueError:
+            messages.error(request, "Quantidade e Stock mínimo devem ser números inteiros não negativos.")
+            return redirect('listar_pos')
+
+        Po.objects.create(
+            product=product,
+            reference=reference,
+            quantity=quantity_int,
+            fornecedor=fornecedor,
+            min_stock=min_stock_int,
+            user=request.user
+        )
+        messages.success(request, "PO criado com sucesso!")
+    return redirect('listar_pos')
+
+@login_required
 def listar_pos(request):
     pos = Po.objects.all()
     fornecedor = Fornecedor.objects.all()
@@ -174,7 +246,14 @@ def listar_pos(request):
 
     # Atualização via POST (incrementar/decrementar quantidade)
     if request.method == 'POST':
+        if 'increment' not in request.POST and 'decrement' not in request.POST:
+            return redirect('listar_pos')
+
         po_id = request.POST.get('po_id')
+        if not po_id:
+            messages.error(request, "PO inválido para atualização de stock.")
+            return redirect('listar_pos')
+
         po_item = get_object_or_404(Po, id=po_id)
 
         if 'increment' in request.POST:
@@ -236,10 +315,11 @@ def listar_pos(request):
 
     return render(request, 'management/listar_pos.html', {
         'pos': pos,
-        'fornecedor': fornecedor,
+        'fornecedor': fornecedor, # Já tinhas isto, perfeito!
         'filtro_data': filtro_data,
         'data_inicio': data_inicio,
         'data_fim': data_fim,
+        'reference_choices': Po.reference_choices, # <--- ADICIONAR ISTO
     })
 
 @login_required
@@ -1709,6 +1789,8 @@ def historico_stock(request):
         "resumo_por_stock": resumo_por_stock,
     }
     return render(request, "management/historico_stock.html", ctx)
+
+
 
 @login_required
 def listar_agulhas(request):
