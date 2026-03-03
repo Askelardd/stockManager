@@ -37,6 +37,8 @@ urlpatterns = [
     path('po/<int:po_id>/adicionar/', views.adicionarMaisde1Po, name='adicionar_po'),
     path('po/<int:po_id>/remover/', views.removerPo, name='remover_po'),
     path("po/historico/", views.historico_po, name="historico_po"),
+    path("po/editar/<int:po_id>/", views.editar_pos_inline, name="editar_pos_inline"),
+    path("po/criar/", views.criar_po, name="criar_po"),
 
     # Stock
     path('listar_stock/', views.listar_stock, name='listar_stock'),
