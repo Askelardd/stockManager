@@ -268,6 +268,9 @@ def listar_pos(request):
             prev_quantity = po_item.quantity
             po_item.quantity -= 1
             stock_after_use = po_item.quantity
+            if po_item.quantity < 0:
+                messages.error(request, "A quantidade do PO não pode ser negativa.")
+                return redirect('listar_pos')
             action = 'removed'
             print("Decrementing PO:", po_item.id)
 
@@ -285,6 +288,7 @@ def listar_pos(request):
                     quantity_added=1,
                     previous_quantity=prev_quantity,
                     stock_after_addition= stock_after_addition,
+                    fornecedor = po_item.fornecedor.nome if po_item.fornecedor else None,
                     user=request.user
                 )
 
@@ -294,6 +298,7 @@ def listar_pos(request):
                     quantity_used=1,
                     previous_quantity=prev_quantity,
                     stock_after_use= stock_after_use,
+                    fornecedor = po_item.fornecedor.nome if po_item.fornecedor else None,
                     user=request.user
                 )
 
@@ -336,6 +341,7 @@ def adicionarMaisde1Po(request, po_id):
             po.quantity += quantidade
             stock_after_addition = po.quantity
             po.user = request.user
+            po.fornecedor = po.fornecedor  # Mantém o fornecedor atual
             po.save()
 
             # Registo direto de entrada com previous_quantity
@@ -344,6 +350,7 @@ def adicionarMaisde1Po(request, po_id):
                 quantity_added=quantidade,
                 previous_quantity=previous_quantity,
                 stock_after_addition=stock_after_addition,
+                fornecedor = po.fornecedor.nome if po.fornecedor else None,
                 user=request.user
             )
 
@@ -364,13 +371,15 @@ def removerPo(request, po_id):
     if request.method == 'POST':
         try:
             quantidade = int(request.POST.get('num_field'))
-            if quantidade <= 0:
-                raise ValueError("A quantidade deve ser maior que zero.")
+            if quantidade < 0:
+                messages.error(request, "A quantidade deve ser maior ou igual a zero.")
+                raise ValueError("O PO não pode ter uma quantidade negativa.")
 
             previous_quantity = po.quantity
             po.quantity -= quantidade
             stock_after_use = po.quantity
             po.user = request.user
+            po.fornecedor = po.fornecedor  # Mantém o fornecedor atual
             po.save()
 
             # Registo direto de saída com previous_quantity
@@ -379,6 +388,7 @@ def removerPo(request, po_id):
                 quantity_used=quantidade,
                 stock_after_use=stock_after_use,
                 previous_quantity=previous_quantity,
+                fornecedor = po.fornecedor.nome if po.fornecedor else None,
                 user=request.user
             )
 
@@ -444,10 +454,11 @@ def historico_po(request):
         po_reference=F("po__reference"),
         previous_stock=F("previous_quantity"),
         stock_after_movement=F("stock_after_addition"),
+        fornecedor_nome=F("fornecedor"),
         username=F("user__username"),
     ).values(
         "date", "quantity", "direction", "po_product", "po_reference",
-        "previous_stock", "stock_after_movement", "username"
+        "previous_stock", "stock_after_movement", "fornecedor_nome", "username"
     )
 
     # 🔹 Normalizar SAÍDAS
@@ -459,10 +470,11 @@ def historico_po(request):
         po_reference=F("po__reference"),
         previous_stock=F("previous_quantity"),
         stock_after_movement=F("stock_after_use"),
+        fornecedor_nome=F("fornecedor"),
         username=F("user__username"),
     ).values(
         "date", "quantity", "direction", "po_product", "po_reference",
-        "previous_stock", "stock_after_movement", "username"
+        "previous_stock", "stock_after_movement", "fornecedor_nome", "username"
     )
 
     # 🔹 União e ordenação
@@ -481,27 +493,30 @@ def historico_po(request):
     total_listado = total_entradas if tipo == "entradas" else (total_saidas if tipo == "saidas" else None)
 
     # 🔹 Resumo por PO
-    entradas_por_po = ent.values("po__product", "po__reference").annotate(total_ent=Sum("quantity_added"))
-    saidas_por_po = sai.values("po__product", "po__reference").annotate(total_sai=Sum("quantity_used"))
-    existentes = Po.objects.filter(quantity__gt=0).values("product", "reference").annotate(total=Sum("quantity"))
+    entradas_por_po = ent.values("po__product", "po__reference", "po__fornecedor__nome").annotate(total_ent=Sum("quantity_added"))
+    saidas_por_po = sai.values("po__product", "po__reference", "po__fornecedor__nome").annotate(total_sai=Sum("quantity_used"))
+    fornecedor_por_po = Po.objects.values("product", "reference", "fornecedor__nome")
+    existentes = Po.objects.filter(quantity__gt=0).values("product", "reference", "fornecedor__nome").annotate(total=Sum("quantity"))
 
     resumo_map = {}
     for row in entradas_por_po:
-        key = (row["po__product"], row["po__reference"])
+        key = (row["po__product"], row["po__reference"], row["po__fornecedor__nome"])
         resumo_map[key] = {
             "product": key[0],
             "reference": key[1],
+            "fornecedor_nome": key[2],
             "entradas": row["total_ent"] or 0,
             "saidas": 0,
             "existentes": 0
         }
 
     for row in saidas_por_po:
-        key = (row["po__product"], row["po__reference"])
+        key = (row["po__product"], row["po__reference"], row["po__fornecedor__nome"])
         if key not in resumo_map:
             resumo_map[key] = {
                 "product": key[0],
                 "reference": key[1],
+                "fornecedor_nome": key[2],
                 "entradas": 0,
                 "saidas": row["total_sai"] or 0,
                 "existentes": 0
@@ -510,7 +525,7 @@ def historico_po(request):
             resumo_map[key]["saidas"] = row["total_sai"] or 0
 
     for row in existentes:
-        key = (row["product"], row["reference"])
+        key = (row["product"], row["reference"], row["fornecedor__nome"])
         if key in resumo_map:
             resumo_map[key]["existentes"] = row["total"] or 0
 
@@ -519,7 +534,7 @@ def historico_po(request):
         v["saldo"] = (v["entradas"] or 0) - (v["saidas"] or 0)
         resumo_por_po.append(v)
 
-    resumo_por_po.sort(key=lambda x: (x["product"], x["reference"]))
+    resumo_por_po.sort(key=lambda x: (x["product"], x["reference"], x["fornecedor_nome"]))
 
     users = User.objects.all().order_by("username")
 

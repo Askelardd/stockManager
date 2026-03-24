@@ -31,7 +31,6 @@ class Fornecedor(models.Model):
     def __str__(self):
         return self.nome
 
-
 # ---------- Po ------------ #
 
 class Po(models.Model):
@@ -86,6 +85,7 @@ class poSaidas(models.Model):
     quantity_used = models.PositiveIntegerField()
     previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     stock_after_use = models.IntegerField(null=True, blank=True, default=0)
+    fornecedor = models.CharField(max_length=200, blank=True, null=True)
     date_used = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
@@ -99,6 +99,7 @@ class poEntradas(models.Model):
     stock_after_addition = models.IntegerField(null=True, blank=True, default=0)
     date_added = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    fornecedor = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} adicionou {self.quantity_added} de {self.po} em {self.date_added}"
