@@ -132,6 +132,7 @@
               <th class="py-3 pl-5 pr-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Data</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Referência</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Stock </th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Fornecedor</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Movimento</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Saldo</th>
               <th class="py-3 pl-3 pr-5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Utilizador</th>
@@ -143,6 +144,7 @@
                 <td class="py-3 pl-5 pr-3 text-sm text-gray-900 whitespace-nowrap">{{ r.date|date:"Y-m-d H:i" }}</td>
                 <td class="px-3 py-3 text-sm text-gray-700">{{ r.po_reference }}</td>
                 <td class="px-3 py-3 text-sm text-gray-700">{{ r.previous_stock|default:"-" }}</td>
+                <td class="px-3 py-3 text-sm text-gray-700">{{ r.fornecedor_nome|default:"-" }}</td>
                 <td class="px-3 py-3 text-sm font-semibold {% if r.direction == 'entrada' %}text-emerald-700{% else %}text-rose-700{% endif %}">
                   {% if r.direction == 'entrada' %}+{% else %}-{% endif %}{{ r.quantity }}
                 </td>
@@ -173,6 +175,7 @@
             <tr>
               <th class="py-3 pl-5 pr-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Pó</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Ref.</th>
+              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Fornecedor</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Entradas</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Saídas</th>
               <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Existências</th>
@@ -183,6 +186,7 @@
               <tr class="hover:bg-gray-50">
                 <td class="py-3 pl-5 pr-3 text-sm text-gray-700">{{ item.product }}</td>
                 <td class="px-3 py-3 text-sm text-gray-700">{{ item.reference }}</td>
+                <td class="px-3 py-3 text-sm text-gray-700">{{ item.fornecedor_nome|default:"-" }}</td>
                 <td class="px-3 py-3 text-sm font-semibold text-emerald-700">+{{ item.entradas }}</td>
                 <td class="px-3 py-3 text-sm font-semibold text-rose-700">-{{ item.saidas }}</td>
                 <td class="px-3 py-3 text-sm font-semibold text-gray-900">{{ item.existentes }}</td>
