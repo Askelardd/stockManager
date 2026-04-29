@@ -1,4 +1,5 @@
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from django.http import JsonResponse
 from django.urls import reverse
 from django.utils.timezone import now, make_aware
 from django.contrib.auth.models import User
@@ -20,8 +21,21 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Count
+from django.views.decorators.http import require_POST
+from django.core.exceptions import PermissionDenied
+from functools import wraps
 
-
+def group_required(*group_names):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                raise PermissionDenied
+            if not any(request.user.groups.filter(name=group_name).exists() for group_name in group_names):
+                raise PermissionDenied
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
 
 def index(request):
     users = User.objects.all()
@@ -236,6 +250,22 @@ def criar_po(request):
         messages.success(request, "PO criado com sucesso!")
     return redirect('listar_pos')
 
+@group_required('Admin')
+@login_required
+@require_POST
+def toggle_encomendado(request):
+    po_id = request.POST.get('po_id')
+    po_item = get_object_or_404(Po, id=po_id)
+    
+    # Inverte o valor atual
+    po_item.encomendado = not po_item.encomendado
+    po_item.save()
+    
+    return JsonResponse({
+        'status': 'success', 
+        'novo_estado': po_item.encomendado
+    })
+
 @login_required
 def listar_pos(request):
     pos = Po.objects.all()
@@ -303,7 +333,7 @@ def listar_pos(request):
                 )
 
                 # Alerta stock mínimo
-                if po_item.quantity < po_item.min_stock:
+                if po_item.quantity < po_item.min_stock and po_item.encomendado == False:
                     messages.warning(
                         request, 
                         f"Atenção: A quantidade do PO '{po_item.reference}' está abaixo do Stock mínimo!"
@@ -314,7 +344,7 @@ def listar_pos(request):
                         from_email=settings.EMAIL_HOST_USER,
                         recipient_list=settings.EMAIL_RECIPIENTS,
                         fail_silently=False,
-                    )
+                    )                
 
         return redirect('listar_pos')
 

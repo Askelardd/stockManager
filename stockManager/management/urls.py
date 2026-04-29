@@ -39,6 +39,7 @@ urlpatterns = [
     path("po/historico/", views.historico_po, name="historico_po"),
     path("po/editar/<int:po_id>/", views.editar_pos_inline, name="editar_pos_inline"),
     path("po/criar/", views.criar_po, name="criar_po"),
+    path('toggle-encomendado/', views.toggle_encomendado, name='toggle_encomendado'),
 
     # Stock
     path('listar_stock/', views.listar_stock, name='listar_stock'),
