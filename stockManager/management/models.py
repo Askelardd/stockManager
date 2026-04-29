@@ -58,6 +58,7 @@ class Po(models.Model):
     date_added = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    encomendado = models.BooleanField(default=False)
 
 
     def __str__(self):
@@ -343,3 +344,5 @@ class stockMaquinas(models.Model):
 
     def __str__(self):
         return f"Máquina {self.machine_number} - {self.model} - manutenção {self.manutenance_date}"
+
+

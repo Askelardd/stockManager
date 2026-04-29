@@ -24,10 +24,10 @@
           <th class="py-3 px-6 text-left">Qnt</th>
           <th class="py-3 px-6 text-left">Ações de Stock</th>
           <th class="py-3 px-6 text-left">Fornecedor</th>
-          <th class="py-3 px-6 text-left">Data Adicionada</th>
           <th class="py-3 px-6 text-left">Última Atualização</th>
           <th class="py-3 px-6 text-left">Atualizado por</th>
           <th class="py-3 px-6 text-center">Ações</th>
+          <th class="py-3 px-6 text-left">Encomendado</th>
         </tr>
       </thead>
       <tbody class="text-gray-600 text-sm font-light">
@@ -74,7 +74,6 @@
                 {% endfor %}
               </select>
             </td>
-            <td class="py-3 px-6 text-left">{{ po.date_added }}</td>
             <td class="py-3 px-6 text-left">{{ po.updated_at }}</td>
             <td class="py-3 px-6 text-left">{{ po.user.username }}</td>
             <td class="py-3 px-6 text-center">
@@ -111,6 +110,10 @@
                   </svg>
                 </button>
               </div>
+            </td>
+            <td class="py-3 px-6 text-center">
+                <input type="checkbox" class="toggle-encomendado w-4 h-4" data-id="{{ po.id }}"
+                {% if po.encomendado %} checked {% endif %} >
             </td>
           </tr>
         {% empty %}
@@ -209,7 +212,36 @@
         })
       }
     })
-    
+
+    document.querySelectorAll('.toggle-encomendado').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const poId = this.dataset.id;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch("{% url 'toggle_encomendado' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: `po_id=${poId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log("Estado atualizado!");
+                } else {
+                    alert("Erro ao atualizar.");
+                    this.checked = !this.checked; // Reverte se falhar
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                this.checked = !this.checked;
+            });
+        });
+    });
+        
     function enableEdit(id) {
       document.getElementById(`view-product-${id}`).classList.add('hidden')
       document.getElementById(`view-ref-${id}`).classList.add('hidden')

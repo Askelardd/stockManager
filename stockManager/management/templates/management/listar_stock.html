@@ -1,113 +1,110 @@
 {% extends 'management/base.html' %}
 {% load static %}
 
-{% block title %}Listar stock{% endblock %}
+{% block title %}Gestão de Stock{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-black mb-6">Lista de stock</h1>
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Lista de Stock</h1>
+            <p class="text-slate-500">Monitorize e gira os níveis de inventário em tempo real.</p>
+        </div>
+        
+        <div class="relative w-full max-w-md">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
+            <input type="text" id="searchInput" placeholder="Pesquisar produtos, categorias..."
+                   class="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl leading-5 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm" />
+        </div>
+    </div>
 
-<div class="flex justify-between items-center mb-4">
-  <input type="text" id="searchInput" placeholder="Pesquisar fio..."
-         class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
-</div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table id="stockTable" class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Produto</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Categoria</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Quantidade</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fornecedor</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Última Ref.</th>
+                        <th class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Gestão Qnt.</th>
+                        <th class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                
+                <tbody class="bg-white divide-y divide-slate-100">
+                    {% for item in stock|dictsort:"product" %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-slate-900">{{ item.product }}</div>
+                            <div class="text-xs text-slate-400">User: {{ item.user.username|default:"—" }}</div>
+                        </td>
 
-<div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
-  <table id="stockTable" class="min-w-full table-auto">
-    <thead>
-      <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-        <th class="py-3 px-6 text-left">Produto</th>
-        <th class="py-3 px-6 text-left">Categoria</th>
-        <th class="py-3 px-6 text-left">Quantidade</th>
-        <th class="py-3 px-6 text-left">Stock Mínimo</th>
-        <th class="py-3 px-6 text-left">Fornecedor</th>
-        <th class="py-3 px-6 text-left">Última Atualização</th>
-        <th class="py-3 px-6 text-left">Utilizador</th>
-        <th class="py-3 px-6 text-center">Ações Qnt</th>
-        <th class="py-3 px-6 text-center">Ações Geral</th>
-      </tr>
-    </thead>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                {{ item.categoria.nome|default:"Geral" }}
+                            </span>
+                        </td>
 
-    <tbody class="text-gray-600 text-sm font-light">
-      {% for item in stock|dictsort:"product" %}
-      <tr class="border-b border-gray-200 hover:bg-gray-100">
-        <td class="py-3 px-6 text-left">
-          {{ item.product }}
-        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-sm font-semibold {% if item.quantity <= item.min_stock %}text-red-600{% else %}text-slate-700{% endif %}">
+                                    {{ item.quantity }}
+                                </span>
+                                <span class="text-[10px] text-slate-400 uppercase">Mín: {{ item.min_stock }}</span>
+                                {% if item.quantity <= item.min_stock %}
+                                    <span class="mt-1 flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                                {% endif %}
+                            </div>
+                        </td>
 
-        <td class="py-3 px-6 text-left">
-            {{ item.categoria.nome|default:"—" }}   
-        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            {{ item.fornecedor.nome|default:"—" }}
+                        </td>
 
-        <td class="py-3 px-6 text-left">
-          <div class="flex items-center gap-3">
-            <span class="font-medium">{{ item.quantity }}</span>
+                        <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
+                            {{ item.updated_at|date:"d M Y" }}<br>
+                            <span class="text-slate-400">{{ item.updated_at|date:"H:i" }}</span>
+                        </td>
 
-            <!-- <form method="post" class="inline-flex items-center gap-2">
-              {% csrf_token %}
-              <input type="hidden" name="stock_id" value="{{ item.id }}">
-              <button type="submit" name="increment"
-                      class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded shadow">
-                +1
-              </button>
-              <button type="submit" name="decrement"
-                      class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
-                -1
-              </button>
-            </form> -->
-          </div>
-        </td>
+                        <td class="px-4 py-4 whitespace-nowrap text-center">
+                            <div class="flex justify-center gap-2">
+                                <a href="{% url 'adicionar_stock' item.id %}" class="inline-flex items-center p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Adicionar">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                </a>
+                                <a href="{% url 'remover_stock' item.id %}" class="inline-flex items-center p-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-600 hover:text-white transition-all shadow-sm" title="Remover">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                                </a>
+                            </div>
+                        </td>
 
-        <td class="py-3 px-6 text-left">
-          {{ item.min_stock }}
-        </td>
-
-        <td class="py-3 px-6 text-left">
-          {{ item.fornecedor.nome|default:"—" }}
-        </td>
-
-        <td class="py-3 px-6 text-left">
-          {{ item.updated_at|date:"d/m/Y H:i" }}
-        </td>
-
-        <td class="py-3 px-6 text-left">
-          {{ item.user.username|default:"—" }}
-        </td>
-
-        <td class="py-3 px-6 text-center">
-          <div class="flex flex-col items-center space-y-1">
-            <a href="{% url 'adicionar_stock' item.id %}"
-               class="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-3 py-1 rounded shadow">
-              Adicionar
-            </a>
-            <a href="{% url 'remover_stock' item.id %}"
-               class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
-              Remover
-            </a>
-          </div>
-        </td>
-        <td class="py-3 px-6 text-center">
-          <div class="flex flex-col items-center space-y-1">
-            <a href="{% url 'editar_stock' item.id %}"
-               class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-1 rounded shadow">
-              Editar
-            </a>
-            <a href="{% url 'delete_stock' item.id %}"
-               class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded shadow">
-              Deletar
-            </a>
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="9" class="py-3 px-6 text-center">Nenhum produto encontrado.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+                        <td class="px-4 py-4 whitespace-nowrap text-center">
+                            <div class="flex justify-center gap-3">
+                                <a href="{% url 'editar_stock' item.id %}" class="text-slate-400 hover:text-blue-600 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </a>
+                                <a href="{% url 'delete_stock' item.id %}" class="text-slate-400 hover:text-red-600 transition-colors" onclick="return confirm('Tem certeza?')">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-slate-500 italic">
+                            Nenhum produto encontrado no inventário.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
 document.getElementById('searchInput').addEventListener('keyup', function() {
