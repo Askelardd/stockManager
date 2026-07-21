@@ -65,22 +65,6 @@ class Po(models.Model):
         return f"{self.product} {self.reference}"
     
 
-class updatePo(models.Model):
-    ACTION_CHOICES = [
-        ('added', 'Added'),
-        ('removed', 'Removed'),
-    ]
-
-    po = models.ForeignKey(Po, on_delete=models.CASCADE)
-    previous_quantity = models.IntegerField(null=True, blank=True, default=0)
-    new_quantity = models.PositiveIntegerField()
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-    date_updated = models.DateTimeField(auto_now=True)  # <- você só precisa deste
-
-    def __str__(self):
-        return f"{self.po} {self.get_action_display()} {self.date_updated}"
-
 class poSaidas(models.Model):
     po = models.ForeignKey(Po, on_delete=models.CASCADE)
     quantity_used = models.PositiveIntegerField()
@@ -116,10 +100,9 @@ class Fios(models.Model):
 
     size = FlexibleDecimalField(max_digits=10, decimal_places=4)
     weight = FlexibleDecimalField(max_digits=10, decimal_places=2)
-    weight_unit = FlexibleDecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField()
     material = models.CharField(max_length=20, choices=material, default='cobre')
-    min_stock = models.IntegerField(null=True, blank=True)
+    peso_minimo = FlexibleDecimalField(max_digits=10, decimal_places=2)
     fornecedor = models.ForeignKey(Fornecedor, on_delete=models.CASCADE, null=True, blank=True)
     date_added = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -128,60 +111,27 @@ class Fios(models.Model):
 
     def __str__(self):
         return f"Fios {self.size}mm - Material {self.material}"
-    
-class FioUsado(models.Model):
-    fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
-    size = FlexibleDecimalField(max_digits=10, decimal_places=4)
-    weight = FlexibleDecimalField(max_digits=10, decimal_places=2)
-    material = models.CharField(max_length=20)
-    quantidade_usada = models.PositiveIntegerField()
-    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
-    data_uso = models.DateTimeField(default=timezone.now)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
-    def __str__(self):
-        return f"{self.user.username} usou {self.quantidade_usada} de {self.fio} em {self.data_uso}"
-    
-
-
-class updateFios(models.Model):
-    ACTION_CHOICES = [
-        ('added', 'Added'),
-        ('removed', 'Removed'),
-    ]
-
-    fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
-    previous_quantity = models.IntegerField()
-    stock_after_use = models.IntegerField(null=True, blank=True, default=0)
-    new_quantity = models.IntegerField()
-    date_updated = models.DateTimeField(auto_now_add=True)
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.user.username} updated Fio {self.fio.size}mm from {self.previous_quantity} to {self.new_quantity}"
-    
 
 class fioSaidas(models.Model):
     fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
-    quantity_used = models.PositiveIntegerField()
+    weight_used = FlexibleDecimalField(max_digits=10, decimal_places=2)
     previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     date_used = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return f"{self.user.username} usou {self.quantity_used} de {self.fio} em {self.date_used}"
+        return f"{self.user.username} usou {self.weight_used} de {self.fio} em {self.date_used}"
 
 class fioEntradas(models.Model):
     fio = models.ForeignKey(Fios, on_delete=models.CASCADE)
-    quantity_added = models.PositiveIntegerField()
+    weight_added = FlexibleDecimalField(max_digits=10, decimal_places=2)
     previous_quantity = models.IntegerField(null=True, blank=True, default=0)
     date_added = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return f"{self.user.username} adicionou {self.quantity_added} de {self.fio} em {self.date_added}"
+        return f"{self.user.username} adicionou {self.weight_added} de {self.fio} em {self.date_added}"
     
 class FioTransformacao(models.Model):
     origem = models.ForeignKey('Fios', on_delete=models.PROTECT, related_name='transformacoes_origem')
@@ -281,22 +231,6 @@ class Agulhas(models.Model):
     def __str__(self):
         return f"Agulha {self.tipo} - {self.tamanho}mm"
 
-class UpdateAgulhas(models.Model):
-    ACTION_CHOICES = [
-        ('added', 'Added'),
-        ('removed', 'Removed'),
-    ]
-
-    agulha = models.ForeignKey(Agulhas, on_delete=models.CASCADE)
-    previous_quantity = models.IntegerField()
-    new_quantity = models.IntegerField()
-    date_updated = models.DateTimeField(auto_now_add=True)
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.user.username} updated Agulha {self.agulha.tamanho}mm from {self.previous_quantity} to {self.new_quantity}"
     
 class AgulhasEntradas(models.Model):
     agulha = models.ForeignKey(Agulhas, on_delete=models.CASCADE)

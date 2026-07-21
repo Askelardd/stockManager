@@ -3,8 +3,8 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.utils.timezone import now, make_aware
 from django.contrib.auth.models import User
-from .models import Po, Fornecedor, StockEntradas, StockSaidas, UpdateStock, fioSaidas , updateFios, updatePo, CategoriaProduto, FioUsado, stockMaquinas
-from .models import  Fios, poSaidas, poEntradas, FioTransformacao, FioTransformacaoItem, Stock , Agulhas, AgulhasEntradas, AgulhasSaidas, UpdateAgulhas
+from .models import Po, Fornecedor, StockEntradas, StockSaidas, UpdateStock, fioEntradas, fioSaidas, CategoriaProduto, stockMaquinas
+from .models import  Fios, poSaidas, poEntradas, FioTransformacao, FioTransformacaoItem, Stock , Agulhas, AgulhasEntradas, AgulhasSaidas
 from django.contrib.auth import authenticate, login as auth_login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
@@ -104,7 +104,7 @@ def novo_fio(request):
         weight = request.POST.get('weight', '0')      # se quiser começar a 0, deixa '0'
         quantity = request.POST.get('quantity', '0')
         material = request.POST.get('material')
-        min_stock = request.POST.get('min_stock', '0')
+        peso_minimo = request.POST.get('peso_minimo', '0')
         fornecedor_id = request.POST.get('fornecedor')
 
         fornecedor = None
@@ -122,29 +122,31 @@ def novo_fio(request):
         # The following code block is commented out as it checks for the existence of a similar Fio
         # and prevents the creation of a duplicate. Uncomment if this behavior is desired.
 
-        # existente = Fios.objects.filter(
-        #     material=material,
-        #     size=size
-        # ).first()
+        existente = Fios.objects.filter(
+             material=material,
+             size=size
+        ).first()
 
-        # if existente:
-        #     messages.info(request, f"O Fio {existente.size}mm com o material {existente.material} já existe.")
-        #     return render(request, 'management/novo_fio.html', {
-        #         'fornecedores': fornecedores,
-        #         'material_choices': material_choices,
-        #         'form': request.POST,
-        #     })
+        if existente:
+            messages.info(request, f"O Fio {existente.size}mm com o material {existente.material} já existe.")
+            return render(request, 'management/novo_fio.html', {
+                'fornecedores': fornecedores,
+                'material_choices': material_choices,
+                'form': request.POST,
+        })
+
+        # Até aqui
 
         try:
             size_dec = Decimal(size)
             weight_dec = Decimal(weight)
             quantity_int = int(quantity)
-            min_stock_int = int(min_stock)
+            peso_minimo_dec = Decimal(peso_minimo)
             if size_dec <= 0:
                 raise InvalidOperation("Tamanho deve ser > 0.")
             if weight_dec < 0:
                 raise InvalidOperation("Peso não pode ser negativo.")
-            if quantity_int < 0 or min_stock_int < 0:
+            if quantity_int < 0 or peso_minimo_dec < 0:
                 raise InvalidOperation("Quantidade/Stock mínimo não podem ser negativos.")
 
             weight_unit = weight_dec / quantity_int if quantity_int > 0 else Decimal('0')  # Calcula weight_unit
@@ -156,21 +158,35 @@ def novo_fio(request):
                 'material_choices': material_choices,
                 'form': request.POST,
             })
+        
+            
 
         # cria o fio
         Fios.objects.create(
             size=size_dec,
             weight=weight_dec,
-            weight_unit=weight_unit,
             quantity=quantity_int,
             material=material,
-            min_stock=min_stock_int,
+            peso_minimo=peso_minimo_dec,
             fornecedor=fornecedor,
             user=request.user
         )
+
+        try:
+            # Registo de entrada do fio criado
+            fio = Fios.objects.get(size=size_dec, material=material)
+            fioEntradas.objects.create(
+                fio=fio,
+                weight_added=weight_dec,
+                previous_quantity=0,
+                user=request.user
+            )
+        except Exception as e:
+            messages.error(request, f"O fio foi criado, mas ocorreu um erro ao criar registro de entrada: {e}")  
+
         messages.success(request, "Fio criado com sucesso!")
         # redireciona para evitar repost do formulário (ajusta a rota se quiser)
-        return redirect('novo_fio')
+        return redirect('listar_fios')
 
     # GET
     return render(request, 'management/novo_fio.html', {
@@ -587,213 +603,137 @@ def historico_po(request):
     }
     return render(request, "management/historico_po.html", ctx)
 
-
-
-@login_required
-def listar_updates(request):
-    updates = updatePo.objects.all()
-    return render(request, 'management/listar_update_pos.html', {'updates': updates})
-
-
-@login_required
-def listar_fiousado(request):
-    fios_usados = FioUsado.objects.all()
-    return render(request, 'management/listar_fiousado.html', {'fios_usados': fios_usados})
-
-
-@login_required
-def deletar_fiousado(request, id):  # <— bate com a URL
-    fio_usado = get_object_or_404(FioUsado, pk=id)
-
-    if request.method == 'POST':
-        if fio_usado.quantidade_usada > 1:
-            fio_usado.quantidade_usada -= 1
-            fio_usado.save()
-            messages.success(request, "Quantidade de fio usado decrementada com sucesso.")
-        else:
-            fio_usado.delete()
-            messages.success(request, "Registro de fio usado deletado com sucesso.")
-
-        return redirect('listar_fiousado')  
-    return render(request, 'management/delecao_fiousado.html', {'fio_usado': fio_usado})
-
-
 @login_required
 def listar_fios(request):
-    if request.method == 'POST':
-        fio_id = request.POST.get('fio_id')
-        if fio_id:
-            fio_item = Fios.objects.get(id=fio_id)
-            if 'increment' in request.POST:
-
-                previous_quantity = fio_item.quantity
-                fio_item.quantity += 1
-                stock_after_use = fio_item.quantity
-                fio_item.weight += fio_item.weight_unit
-
-
-            elif 'decrement' in request.POST:
-                previous_quantity = fio_item.quantity
-                fio_item.quantity -= 1
-                stock_after_use = fio_item.quantity
-
-                fio_item.weight -= fio_item.weight_unit
-
-                fio_usado = FioUsado.objects.filter(
-                    fio=fio_item,
-                    size=fio_item.size,
-                    material=fio_item.material
-                ).first()
-
-                if fio_usado:
-                    fio_usado.quantidade_usada += 1
-                    fio_usado.save()
-                else:
-                    FioUsado.objects.create(
-                        fio=fio_item,
-                        size=fio_item.size,
-                        weight=fio_item.weight_unit,
-                        material=fio_item.material,
-                        quantidade_usada=1,
-                        stock_after_use= stock_after_use,
-                        data_uso=now(),
-                        user=request.user
-                    )
-
-            updateFios.objects.create(
-                fio=fio_item,
-                previous_quantity=fio_item.quantity - (1 if 'increment' in request.POST else -1),
-                stock_after_use=stock_after_use,
-                new_quantity=fio_item.quantity,
-                user=request.user,
-                action='added' if 'increment' in request.POST else 'removed'
-            )
-
-            fio_item.save()
-            fio_item.user = request.user
-            fio_item.save()
-
-            if fio_item.quantity == 0:
-                fio_item.weight = 0
-
-
-        return redirect('listar_fios')
-
-    fios = Fios.objects.all()
+    fios = Fios.objects.all().order_by('material', 'size')
     fornecedor = Fornecedor.objects.all()
     return render(request, 'management/listar_fios.html', {'fios': fios, 'fornecedor': fornecedor})
-
-@login_required
-def adicionarMaisde1Fio(request, fio_id):
-    fio = get_object_or_404(Fios, pk=fio_id)
-    context = {'fio': fio}
-
-    if request.method == 'POST':
-        try:
-            quantidade = int(request.POST.get('num_field'))
-            if quantidade <= 0:
-                raise ValueError("A quantidade deve ser maior que zero.")
-
-            # Atualiza a quantidade
-            previous_quantity = fio.quantity
-            fio.quantity += quantidade
-            stock_after_use = fio.quantity
-            fio.user = request.user
-            fio.weight += fio.weight_unit * quantidade
-
-            fio.save()
-
-            fio_usado = FioUsado.objects.filter(
-                fio=fio,
-                size=fio.size,
-                material=fio.material
-            ).first()
-
-            if fio_usado:
-                fio_usado.quantidade_usada += 1
-                fio_usado.save()
-            else:
-                FioUsado.objects.create(
-                    fio=fio,
-                    size=fio.size,
-                    weight=fio.weight_unit,
-                    material=fio.material,
-                    quantidade_usada=1,
-                    stock_after_use=stock_after_use,
-                    data_uso=now(),
-                    user=request.user
-                )
-
-            update_fio = updateFios(
-                fio=fio,
-                previous_quantity=fio.quantity - quantidade,
-                stock_after_use=stock_after_use,
-                new_quantity=fio.quantity,
-                user=request.user,
-                action='added'
-            )
-            update_fio.save()
-            
-
-            context['success'] = True
-
-            return redirect('listar_fios')
-
-        except ValueError:
-            context['error'] = "Por favor, insira um número válido maior que zero."
-            return render(request, 'management/adicionar_fio.html', context)
-
-    return render(request, 'management/adicionar_fio.html', context)
 
 @login_required
 def editar_fio(request, fio_id):
     fio = get_object_or_404(Fios, pk=fio_id)
 
-    # 🟢 Converter valores ANTES de mostrar no formulário
-    fio.weight = str(fio.weight).replace(',', '.')
-    fio.weight_unit = str(fio.weight_unit).replace(',', '.')
+    peso_atual = fio.weight
+    if isinstance(peso_atual, str):
+        peso_atual = Decimal(str(peso_atual).replace(',', '.'))
+    else:
+        peso_atual = Decimal(peso_atual)
 
     context = {'fio': fio}
 
     if request.method == 'POST':
-        peso = request.POST.get('peso')
-        quantidade = request.POST.get('quantidade', '0')
-        peso_unit = request.POST.get('peso_unit', '0')
-        min_stock = request.POST.get('min_stock', '0')
+        peso = request.POST.get('peso') or ''
+        peso_minimo = request.POST.get('peso_minimo', '0')
+        quantidade = request.POST.get('quantidade') or ''
 
-        # 🟢 Convertendo vírgulas enviadas pelo user também
         peso = peso.replace(',', '.')
-        peso_unit = peso_unit.replace(',', '.')
+        peso_minimo = peso_minimo.replace(',', '.')
 
         try:
             peso_dec = Decimal(peso.strip()) if peso.strip() else Decimal('0')
-            quantidade_int = int(quantidade.strip()) if quantidade.strip() else 0
-            peso_unit_dec = Decimal(peso_unit.strip()) if peso_unit.strip() else Decimal('0')
+            peso_minimo_dec = Decimal(peso_minimo.strip()) if peso_minimo.strip() else Decimal('0')
         except (InvalidOperation, ValueError):
             messages.error(request, "Por favor, insira valores numéricos válidos para peso, quantidade e peso unitário.")
             return redirect(request.path)
 
-        if peso_dec < 0 or quantidade_int < 0 or peso_unit_dec < 0:
+        if peso_dec < 0 or peso_minimo_dec < 0:
             messages.error(request, "Valores não podem ser negativos.")
             return redirect(request.path)
 
-        if quantidade_int == 0:
-            quantidade_int = int(request.POST.get('quantidade_atual', fio.quantity))
+        try:
+            previous_quantity = fio.quantity
+            fio.weight = peso_dec
+            fio.user = request.user
+            fio.updated_at = timezone.now()
+            fio.peso_minimo = Decimal(peso_minimo) if peso_minimo.strip() else Decimal('0')
+            fio.quantity = int(quantidade) if quantidade.strip() else 0
+            fio.save()
 
-        if peso_unit == '0' or peso_unit.strip() == '':
-            peso_unit_dec = peso_dec / quantidade_int if quantidade_int > 0 else Decimal('0')
+            if peso_atual < peso_dec:
+                fioEntradas.objects.create(
+                    fio=fio,
+                    weight_added=peso_dec - peso_atual,
+                    previous_quantity=previous_quantity,
+                    user=request.user
+                )
+            elif peso_atual > peso_dec:
+                fioSaidas.objects.create(
+                    fio=fio,
+                    weight_used=peso_atual - peso_dec,
+                    previous_quantity=previous_quantity,
+                    user=request.user
+                )
 
-        fio.weight = peso_dec
-        fio.quantity = quantidade_int
-        fio.weight_unit = peso_unit_dec
-        fio.user = request.user
-        fio.min_stock = int(min_stock)
-        fio.save()
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Erro ao registrar entrada de fio. Verifique os valores.")
+            return redirect(request.path)
 
         messages.success(request, "Fio atualizado com sucesso!")
         return redirect('listar_fios')
 
     return render(request, 'management/editar_fio.html', context)
+
+@login_required
+def adicionar_fio(request, fio_id):
+    fio = get_object_or_404(Fios, pk=fio_id)
+
+    if request.method == 'POST':
+        peso = request.POST.get('Peso', '').strip()  
+
+        if not peso:
+            messages.error(request, "O campo 'Peso' é obrigatório.")
+            return redirect(request.path)
+
+        try:
+            peso_dec = Decimal(peso)
+        except InvalidOperation:
+            messages.error(request, "Valor de peso inválido.")
+            return redirect(request.path)
+        
+    
+        if peso_dec <= 0:
+            messages.error(request, "O valor de peso deve ser maior que zero.")
+            return redirect(request.path)
+        
+        if peso_dec > fio.weight:
+            messages.error(request, "O valor de peso não pode ser maior que o peso atual do fio.")
+            return redirect(request.path)
+    
+        try:
+            previous_quantity = fio.quantity
+            fio.weight -= peso_dec
+            fio.user = request.user
+            fio.updated_at = timezone.now()
+            fio.save()
+
+            # Cria registo de saída com previous_quantity
+            fioEntradas.objects.create(
+                fio=fio,
+                weight_added=peso_dec,
+                previous_quantity=previous_quantity,
+                user=request.user
+            )
+
+            messages.success(request, "Peso adicionado com sucesso!")
+        except InvalidOperation:
+            messages.error(request, "Erro ao adicionar peso. Verifique os valores.")
+            return redirect(request.path)
+
+        
+        try:
+            if fio.quantity > 0:
+                fio.weight -= peso_dec
+                fio.user = request.user
+                fio.updated_at = timezone.now()
+                fio.save()
+
+            return redirect('listar_fios')
+
+        except InvalidOperation:
+            messages.error(request, "Valor de peso inválido.")
+            return redirect(request.path)
+
+    return render(request, 'management/adicionar_fio.html', {'fio': fio})
 
 @login_required
 def retirar_fio(request, fio_id):
@@ -812,32 +752,42 @@ def retirar_fio(request, fio_id):
             messages.error(request, "Valor de peso inválido.")
             return redirect(request.path)
         
-        try:
-            new_weight_unit = (fio.weight - peso_dec) / (fio.quantity - 1) if (fio.quantity - 1) > 0 else Decimal('0')
-        except InvalidOperation:
-            messages.error(request, "Operação inválida ao calcular peso unitário.")
+    
+        if peso_dec <= 0:
+            messages.error(request, "O valor de peso deve ser maior que zero.")
             return redirect(request.path)
+        
+        if peso_dec > fio.weight:
+            messages.error(request, "O valor de peso não pode ser maior que o peso atual do fio.")
+            return redirect(request.path)
+    
+        try:
+            previous_quantity = fio.quantity
+            fio.weight -= peso_dec
+            fio.user = request.user
+            fio.updated_at = timezone.now()
+            fio.save()
+
+            # Cria registo de saída com previous_quantity
+            fioSaidas.objects.create(
+                fio=fio,
+                weight_used= peso_dec,
+                previous_quantity=previous_quantity,
+                user=request.user
+            )
+
+            messages.success(request, "Peso retirado com sucesso!")
+        except InvalidOperation:
+            messages.error(request, "Erro ao retirar peso. Verifique os valores.")
+            return redirect(request.path)
+
         
         try:
             if fio.quantity > 0:
-                fio.weight = fio.weight - peso_dec
-                fio.weight_unit = new_weight_unit
-                fio.quantity -= 1
+                fio.weight -= peso_dec
                 fio.user = request.user
+                fio.updated_at = timezone.now()
                 fio.save()
-
-            FioUsado.objects.create(
-                fio=fio,
-                size=fio.size,
-                weight=peso_dec,
-                material=fio.material,
-                quantidade_usada=1,
-                stock_after_use=fio.quantity,
-                data_uso=now(),
-                user=request.user
-            )
-            messages.success(request, "Fio retirado com sucesso!")
-            return redirect('listar_fios')
 
         except InvalidOperation:
             messages.error(request, "Valor de peso inválido.")
@@ -845,10 +795,6 @@ def retirar_fio(request, fio_id):
 
     return render(request, 'management/retirar_fio.html', {'fio': fio})
 
-@login_required
-def listar_updates_fios(request):
-    updates = updateFios.objects.all()
-    return render(request, 'management/listar_update_fios.html', {'updates': updates})
 
 @login_required
 def historico_fios(request):
@@ -856,133 +802,108 @@ def historico_fios(request):
     data_inicio = request.GET.get("data_inicio")
     data_fim = request.GET.get("data_fim")
     user_id = request.GET.get("user_id", "0")
-    tipo = request.GET.get("tipo", "todos")  # "todos" | "entradas" | "saidas"
+    tipo = request.GET.get("tipo", "todos")
     incluir_legacy = request.GET.get("incluir_legacy") == "1"
-    tamanho = request.GET.get("tamanho", None)  # Filtro por tamanho
+    tamanho = request.GET.get("tamanho", None)
 
     di, df = _range_por_filtro(filtro_data, data_inicio, data_fim)
 
-    upd = updateFios.objects.select_related("fio", "user").filter(date_updated__range=(di, df))
+    base_entries = fioEntradas.objects.select_related("fio", "user").filter(date_added__range=(di, df))
+    base_saidas = fioSaidas.objects.select_related("fio", "user").filter(date_used__range=(di, df))
+
     if user_id.isdigit() and int(user_id) != 0:
-        upd = upd.filter(user__id=int(user_id))
+        base_entries = base_entries.filter(user__id=int(user_id))
+        base_saidas = base_saidas.filter(user__id=int(user_id))
+
     if tamanho:
-        upd = upd.filter(fio__size=tamanho)
+        base_entries = base_entries.filter(fio__size=tamanho)
+        base_saidas = base_saidas.filter(fio__size=tamanho)
 
-    # 🔹 ENTRADAS
-    upd_add = upd.filter(action="added").annotate(
-        date=F("date_updated"),
-        quantity=F("new_quantity") - F("previous_quantity"),
-        direction=Value("entrada", output_field=CharField()),
-        fio_size=F("fio__size"),
-        fio_weight=F("fio__weight"),
-        fio_material=F("fio__material"),
-        previous_stock=F("previous_quantity"),
-        stock_after_movement=F("new_quantity"),
-        current_stock=F("fio__quantity"),
-        username=F("user__username"),
-    ).values(
-        "date", "quantity", "direction", "fio_size", "fio_weight", "fio_material",
-        "previous_stock", "stock_after_movement", "current_stock", "username"
-    )
-
-    # 🔹 SAÍDAS
-    upd_rem = upd.filter(action="removed").annotate(
-        date=F("date_updated"),
-        quantity=F("previous_quantity") - F("new_quantity"),
-        direction=Value("saida", output_field=CharField()),
-        fio_size=F("fio__size"),
-        fio_weight=F("fio__weight"),
-        fio_material=F("fio__material"),
-        previous_stock=F("previous_quantity"),
-        stock_after_movement=F("new_quantity"),
-        current_stock=F("fio__quantity"),
-        username=F("user__username"),
-    ).values(
-        "date", "quantity", "direction", "fio_size", "fio_weight", "fio_material",
-        "previous_stock", "stock_after_movement", "current_stock", "username"
-    )
-
-    # 🔹 LEGACY SAÍDAS
-    legacy_norm = None
-    if incluir_legacy:
-        legacy = fioSaidas.objects.select_related("fio", "user").filter(date_used__range=(di, df))
-        if user_id.isdigit() and int(user_id) != 0:
-            legacy = legacy.filter(user__id=int(user_id))
-        if tamanho:
-            legacy = legacy.filter(fio__size=tamanho)
-        legacy_norm = legacy.annotate(
-            date=F("date_used"),
-            quantity=F("quantity_used"),
-            direction=Value("saida", output_field=CharField()),
+    upd_add = (
+        base_entries.annotate(
+            date=F("date_added"),
+            quantity=F("weight_added"),
+            direction=Value("entrada", output_field=CharField()),
             fio_size=F("fio__size"),
             fio_weight=F("fio__weight"),
             fio_material=F("fio__material"),
             previous_stock=F("previous_quantity"),
-            stock_after_movement=F("stock_after_use"),
+            stock_after_movement=F("fio__quantity"),
             current_stock=F("fio__quantity"),
             username=F("user__username"),
         ).values(
             "date", "quantity", "direction", "fio_size", "fio_weight", "fio_material",
             "previous_stock", "stock_after_movement", "current_stock", "username"
         )
+    )
 
-    # 🔹 Filtrar tipo e unir
+    upd_rem = (
+        base_saidas.annotate(
+            date=F("date_used"),
+            quantity=F("weight_used"),
+            direction=Value("saida", output_field=CharField()),
+            fio_size=F("fio__size"),
+            fio_weight=F("fio__weight"),
+            fio_material=F("fio__material"),
+            previous_stock=F("previous_quantity"),
+            stock_after_movement=F("fio__quantity"),
+            current_stock=F("fio__quantity"),
+            username=F("user__username"),
+        ).values(
+            "date", "quantity", "direction", "fio_size", "fio_weight", "fio_material",
+            "previous_stock", "stock_after_movement", "current_stock", "username"
+        )
+    )
+
     if tipo == "entradas":
-        historico = upd_add
+        historico = list(upd_add.order_by("-date"))
     elif tipo == "saidas":
-        historico = upd_rem if not legacy_norm else upd_rem.union(legacy_norm, all=True)
+        historico = list(upd_rem.order_by("-date"))
     else:
-        historico = upd_add.union(upd_rem, all=True)
-        if legacy_norm:
-            historico = historico.union(legacy_norm, all=True)
+        historico = list(upd_add.order_by("-date")) + list(upd_rem.order_by("-date"))
+        historico.sort(key=lambda row: row["date"], reverse=True)
 
-    historico = historico.order_by("-date")
-
-    # 🔹 Totais
-    total_entradas = upd_add.aggregate(total=Sum("quantity"))["total"] or 0
-    total_saidas = upd_rem.aggregate(total=Sum("quantity"))["total"] or 0
-    if incluir_legacy and legacy_norm:
-        total_saidas += legacy.aggregate(total=Sum("quantity_used"))["total"] or 0
+    total_entradas = upd_add.aggregate(total=Sum("quantity"))["total"] or Decimal("0")
+    total_saidas = upd_rem.aggregate(total=Sum("quantity"))["total"] or Decimal("0")
 
     total_listado = total_entradas if tipo == "entradas" else (total_saidas if tipo == "saidas" else None)
-    existencias = (Fios.objects
-                .values("size", "weight", "material")
-                .annotate(total_exist=Sum("quantity")))
 
-    # criar um dicionário para lookup rápido
+    existencias = (
+        Fios.objects.values("size", "weight", "material")
+        .annotate(total_exist=Sum("quantity"))
+    )
+
     exist_map = {}
     for row in existencias:
         key = (row["size"], row["weight"], row["material"])
         exist_map[key] = row["total_exist"] or 0
 
-    # 🔹 Resumo
     resumo_map = {}
     for row in upd_add:
         k = (row["fio_size"], row["fio_weight"], row["fio_material"])
-        resumo_map[k] = {"size": k[0], "weight": k[1], "material": k[2],
-                        "entradas": row["quantity"], "saidas": 0,
-                        "existencias": exist_map.get(k, 0)}
+        resumo_map[k] = {
+            "size": k[0],
+            "weight": k[1],
+            "material": k[2],
+            "entradas": row["quantity"],
+            "saidas": 0,
+            "existencias": exist_map.get(k, 0),
+        }
 
     for row in upd_rem:
         k = (row["fio_size"], row["fio_weight"], row["fio_material"])
         if k not in resumo_map:
-            resumo_map[k] = {"size": k[0], "weight": k[1], "material": k[2],
-                            "entradas": 0, "saidas": row["quantity"],
-                            "existencias": exist_map.get(k, 0)}
+            resumo_map[k] = {
+                "size": k[0],
+                "weight": k[1],
+                "material": k[2],
+                "entradas": 0,
+                "saidas": row["quantity"],
+                "existencias": exist_map.get(k, 0),
+            }
         else:
             resumo_map[k]["saidas"] += row["quantity"]
 
-    if incluir_legacy and legacy_norm:
-        for row in legacy_norm:
-            k = (row["fio_size"], row["fio_weight"], row["fio_material"])
-            if k not in resumo_map:
-                resumo_map[k] = {"size": k[0], "weight": k[1], "material": k[2],
-                                "entradas": 0, "saidas": row["quantity"],
-                                "existencias": exist_map.get(k, 0)}
-            else:
-                resumo_map[k]["saidas"] += row["quantity"]
-
-    # 🔹 Criar lista final
     resumo_por_fio = []
     for v in resumo_map.values():
         v["saldo"] = (v["existencias"] or 0) + (v["entradas"] or 0) - (v["saidas"] or 0)
@@ -991,7 +912,7 @@ def historico_fios(request):
     resumo_por_fio.sort(key=lambda x: (x["material"], x["size"], x["weight"]))
 
     users = User.objects.all().order_by("username")
-    tamanhos = Fios.objects.values_list('size', flat=True).distinct().order_by('size')
+    tamanhos = Fios.objects.values_list("size", flat=True).distinct().order_by("size")
 
     ctx = {
         "registos": historico,
@@ -1001,7 +922,7 @@ def historico_fios(request):
         "user_id": int(user_id) if user_id.isdigit() else 0,
         "users": users,
         "tamanhos": tamanhos,
-        "tamanho_selecionado": tamanho,  # Para manter o tamanho selecionado no filtro
+        "tamanho_selecionado": tamanho,
         "tipo": tipo,
         "total_entradas": total_entradas,
         "total_saidas": total_saidas,
@@ -1196,39 +1117,46 @@ def _range_por_filtro(filtro_data, data_inicio_str, data_fim_str):
     return _make_day_bounds(hoje)
 
 
-
 @login_required
 def trafilar_fio(request):
 
     origem_usado_id = request.GET.get('origem_usado_id') or request.POST.get('origem_usado_id')
-    origem_usado = get_object_or_404(FioUsado, id=origem_usado_id) if origem_usado_id else None
+    origem_usado = get_object_or_404(Fios, id=origem_usado_id) if origem_usado_id else None
 
     # Lista para escolher a origem
-    usados_lista = FioUsado.objects.order_by('-data_uso', '-id')
+    usados_lista = Fios.objects.order_by('-date_added', '-id')
 
-    # Destinos filtrados pelo material do FioUsado
+    # Destinos filtrados pelo material do fio de origem e pela medida menor que a origem
     destinos_qs = Fios.objects.none()
     origem_ppb = None
+    origem_size = None
     if origem_usado:
-        destinos_qs = Fios.objects.filter(material=origem_usado.material).order_by('size')
         try:
-            if origem_usado.quantidade_usada:
-                # PPB: peso por bobine do lote de origem (2 casas decimais)
-                origem_ppb = (Decimal(origem_usado.weight) / Decimal(origem_usado.quantidade_usada)).quantize(Decimal('0.01'))
-        except (InvalidOperation, ZeroDivisionError):
+            origem_size = Decimal(str(origem_usado.size).replace(',', '.')) if origem_usado.size is not None else None
+        except (InvalidOperation, ValueError, AttributeError):
+            origem_size = None
+
+        destinos_qs = Fios.objects.exclude(id=origem_usado.id).filter(material=origem_usado.material)
+        if origem_size is not None and origem_size > 0:
+            destinos_qs = destinos_qs.filter(size__lt=origem_size)
+        destinos_qs = destinos_qs.order_by('size')
+
+        try:
+            if origem_usado.weight and origem_usado.weight > 0:
+                origem_ppb = origem_usado.weight.quantize(Decimal('0.01'))
+        except (InvalidOperation, AttributeError):
             origem_ppb = None
 
     if request.method == 'POST':
         if not origem_usado:
-            messages.error(request, "Selecione um lote (FioUsado) de origem.")
+            messages.error(request, "Selecione um fio de origem.")
             return redirect('trafilar_fio')
 
         quantidade_str = request.POST.get('quantidade') or '0'
         pesos_bobine = [p for p in request.POST.getlist('peso_bobine[]') if str(p).strip() != '']
         target_ids = request.POST.getlist('target_id[]')
-        weights    = request.POST.getlist('peso[]')
+        weights = request.POST.getlist('peso[]')
 
-        # --- validação quantidade ---
         try:
             qtd_bobines = int(quantidade_str)
         except (TypeError, ValueError):
@@ -1236,45 +1164,30 @@ def trafilar_fio(request):
         if qtd_bobines <= 0:
             messages.error(request, "Informe a quantidade de bobines a usar (maior que zero).")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
-        if qtd_bobines > (origem_usado.quantidade_usada or 0):
-            messages.error(request, f"A quantidade ({qtd_bobines}) excede o stock disponível ({origem_usado.quantidade_usada}).")
-            return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
-        # --- PPB da origem (limite por bobine) ---
         if not origem_ppb or origem_ppb <= 0:
-            messages.error(request, "Não foi possível calcular o peso por bobine (PPB) da origem.")
+            messages.error(request, "Não foi possível calcular o peso disponível da origem.")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
-        # precisam existir exatamente N pesos de bobine
         if len(pesos_bobine) != qtd_bobines:
             messages.error(request, f"Indique o peso a trefilar para cada uma das {qtd_bobines} bobines.")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
-        # valida pesos por bobine e separa integrais vs parciais
         pesos_bobine_dec = []
-        full_consumed = 0
-        partial_remainders = []  # lista de Decimal (peso remanescente por bobine parcial)
         try:
             for p in pesos_bobine:
                 val = Decimal(p).quantize(Decimal('0.01'))
                 if val <= 0:
                     raise ValueError("Peso por bobine deve ser > 0.")
                 if val > origem_ppb:
-                    raise ValueError(f"Peso por bobine ({val} g) excede o máximo por bobine ({origem_ppb} g).")
-
+                    raise ValueError(f"Peso por bobine ({val} g) excede o máximo disponível ({origem_ppb} g).")
                 pesos_bobine_dec.append(val)
-
-                if val == origem_ppb:
-                    full_consumed += 1
-                else:
-                    partial_remainders.append((origem_ppb - val).quantize(Decimal('0.01')))
         except (InvalidOperation, ValueError) as e:
             messages.error(request, f"Erro nos pesos por bobine: {e}")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
         total_por_bobines = sum(pesos_bobine_dec, Decimal('0')).quantize(Decimal('0.01'))
 
-        # --- destinos (mesma lógica de antes) ---
         pares = []
         for tid, w in zip(target_ids, weights):
             if (not tid or tid.strip() == '') and (not w or w.strip() == ''):
@@ -1293,7 +1206,15 @@ def trafilar_fio(request):
                 destino_fio = Fios.objects.get(id=tid)
 
                 if destino_fio.material != origem_usado.material:
-                    raise ValueError("Material do destino deve ser igual ao da origem (FioUsado).")
+                    raise ValueError("Material do destino deve ser igual ao da origem.")
+
+                try:
+                    destino_size = Decimal(str(destino_fio.size).replace(',', '.')) if destino_fio.size is not None else None
+                except (InvalidOperation, ValueError, AttributeError):
+                    destino_size = None
+
+                if origem_size is not None and destino_size is not None and destino_size >= origem_size:
+                    raise ValueError(f"Destino {destino_fio.size} mm deve ser menor que a origem {origem_usado.size} mm.")
 
                 peso = Decimal(w).quantize(Decimal('0.01'))
                 if peso <= 0:
@@ -1310,7 +1231,6 @@ def trafilar_fio(request):
             messages.error(request, f"Erro de validação dos destinos: {e}")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
-        # totais têm de bater e não exceder o disponível
         if total_destinos != total_por_bobines:
             messages.error(request, f"O total distribuído ({total_destinos} g) deve ser igual ao total retirado ({total_por_bobines} g).")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
@@ -1318,82 +1238,59 @@ def trafilar_fio(request):
             messages.error(request, f"Peso a retirar ({total_por_bobines} g) excede o disponível ({origem_usado.weight} g).")
             return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
-        # --- TRANSACÃO ---
         with transaction.atomic():
             peso_antes = origem_usado.weight
-            qtd_antes  = origem_usado.quantidade_usada
 
-            # 1) Debita na origem: remove TODAS as bobines usadas (inteiras + parciais)
-            #    - Peso: PPB * qtd_bobines
-            debito_peso_total = (origem_ppb * Decimal(qtd_bobines)).quantize(Decimal('0.01'))
-            origem_usado.weight = F('weight') - debito_peso_total
-            origem_usado.quantidade_usada = F('quantidade_usada') - qtd_bobines
+            debito_peso_total = total_por_bobines
+            origem_usado.weight = origem_usado.weight - debito_peso_total
+            if origem_usado.weight < 0:
+                origem_usado.weight = Decimal('0')
             origem_usado.user = request.user
-            origem_usado.save(update_fields=['weight', 'quantidade_usada', 'user'])
-            origem_usado.refresh_from_db(fields=['weight', 'quantidade_usada'])
+            origem_usado.updated_at = timezone.now()
+            origem_usado.save(update_fields=['weight', 'user', 'updated_at'])
 
-            # 2) Criar FioUsado(s) remanescentes para bobines PARCIAIS
-            remanescentes = []
-            for rem in partial_remainders:  # rem = PPB - retirado
-                if rem > 0:
-                    remanescentes.append(FioUsado(
-                        fio=origem_usado.fio,
-                        size=origem_usado.size,
-                        weight=rem,
-                        material=origem_usado.material,
-                        quantidade_usada=1,
-                        data_uso=timezone.now(),
-                        user=request.user
-                    ))
-            if remanescentes:
-                FioUsado.objects.bulk_create(remanescentes)
-
-            # 3) Log principal (referencia o Fio “pai” do lote)
-            transf = FioTransformacao.objects.create(
-                origem=origem_usado.fio,
-                total_transferido=total_por_bobines,
-                peso_origem_antes=peso_antes,
-                peso_origem_depois=origem_usado.weight + sum((r.weight for r in remanescentes), Decimal('0')) if remanescentes else origem_usado.weight,
+            fioSaidas.objects.create(
+                fio=origem_usado,
+                weight_used=debito_peso_total,
+                previous_quantity=origem_usado.quantity,
                 user=request.user
             )
 
-            # 4) Para cada destino: cria FioUsado produzido
-            produzidos = []
+            transf = FioTransformacao.objects.create(
+                origem=origem_usado,
+                total_transferido=total_por_bobines,
+                peso_origem_antes=peso_antes,
+                peso_origem_depois=origem_usado.weight,
+                user=request.user
+            )
+
             for dest_id, peso_add in vistos.items():
                 destino_fio = Fios.objects.get(id=dest_id)
+                destino_fio.weight = destino_fio.weight + peso_add
+                destino_fio.user = request.user
+                destino_fio.updated_at = timezone.now()
+                destino_fio.save(update_fields=['weight', 'user', 'updated_at'])
 
-                # log item (opcional, mantém histórico do Fio destino)
+                fioEntradas.objects.create(
+                    fio=destino_fio,
+                    weight_added=peso_add,
+                    previous_quantity=destino_fio.quantity,
+                    user=request.user
+                )
+
                 FioTransformacaoItem.objects.create(
                     transformacao=transf,
                     destino=destino_fio,
                     peso_adicionado=peso_add
                 )
 
-                # cria o lote produzido (1 unidade; se quiseres podemos agregar por destino)
-                produzidos.append(FioUsado(
-                    fio=destino_fio,
-                    size=destino_fio.size,
-                    weight=peso_add,
-                    material=destino_fio.material,
-                    quantidade_usada=1,
-                    data_uso=timezone.now(),
-                    user=request.user
-                ))
-            if produzidos:
-                FioUsado.objects.bulk_create(produzidos)
-
-        # resumo
-        msg_extra = ""
-        if partial_remainders:
-            msg_extra = f" · Criadas {len(partial_remainders)} bobine(s) remanescentes."
         messages.success(
             request,
             f"Trefilagem concluída. Retirado {total_por_bobines} g de {qtd_bobines} bobine(s)."
-            f"{msg_extra} Após operação: origem → {origem_usado.weight} g · Qtd: {origem_usado.quantidade_usada}."
+            f" Após operação: origem → {origem_usado.weight} g."
         )
         return redirect(f"{request.path}?origem_usado_id={origem_usado.id}")
 
-    # GET
     context = {
         'origem_usado': origem_usado,
         'origem_ppb': origem_ppb,
@@ -1401,8 +1298,7 @@ def trafilar_fio(request):
         'destinos': destinos_qs,
     }
     return render(request, 'management/trafilar_fio.html', context)
-
-
+    
 @login_required
 def criar_fio_rapido(request):
     if request.method != 'POST':
@@ -1432,15 +1328,21 @@ def criar_fio_rapido(request):
             size=size
         ).first()
 
+        qty_init_int = int(quantity_init) if str(quantity_init).isdigit() else 0
+
         if existente:
-            messages.info(request, f"Fio {existente.size}mm já existia e pode ser usado como destino.")
+            existente.quantity = existente.quantity + qty_init_int
+            existente.user = request.user
+            existente.updated_at = timezone.now()
+            existente.save(update_fields=['quantity', 'user', 'updated_at'])
+            messages.info(request, f"Fio {existente.size}mm já existia e foi atualizado com a quantidade informada.")
         else:
-            qty_init_int = int(quantity_init) if str(quantity_init).isdigit() else 0
             Fios.objects.create(
                 size=size,
-                weight=Decimal('0'),               # sempre 0
-                quantity=qty_init_int,             # número de unidades, opcional
+                weight=Decimal('0'),
+                quantity=qty_init_int,
                 material=origem.material,
+                peso_minimo=Decimal('0'),
                 min_stock=int(min_stock),
                 fornecedor=fornecedor,
                 user=request.user
@@ -1848,14 +1750,6 @@ def listar_agulhas(request):
                 agulha_item.quantidade += 1
                 stock_after_use = agulha_item.quantidade
 
-                UpdateAgulhas.objects.create(
-                    agulha=agulha_item,
-                    previous_quantity=previous_quantity,
-                    new_quantity=agulha_item.quantidade,
-                    action='added',
-                    user=request.user
-                )
-
                 AgulhasEntradas.objects.create(
                     agulha=agulha_item,
                     previous_quantity=previous_quantity,
@@ -1868,13 +1762,6 @@ def listar_agulhas(request):
                 agulha_item.quantidade -= 1
                 stock_after_use = agulha_item.quantidade
 
-                UpdateAgulhas.objects.create(
-                    agulha=agulha_item,
-                    previous_quantity=previous_quantity,
-                    new_quantity=agulha_item.quantidade,
-                    action='removed',
-                    user=request.user
-                )
 
                 AgulhasSaidas.objects.create(
                     agulha=agulha_item,
@@ -1910,14 +1797,6 @@ def adicionar_agulha(request, agulha_id):
             agulha.user = request.user
             agulha.save()
 
-            UpdateAgulhas.objects.create(
-                agulha=agulha,
-                previous_quantity=previous_quantity,
-                new_quantity=agulha.quantidade,
-                action='added',
-                user=request.user
-            )
-
             AgulhasEntradas.objects.create(
                 agulha=agulha,
                 previous_quantity=previous_quantity,
@@ -1951,14 +1830,6 @@ def remover_agulha(request, agulha_id):
             stock_after_use = agulha.quantidade
             agulha.user = request.user
             agulha.save()
-
-            UpdateAgulhas.objects.create(
-                agulha=agulha,
-                previous_quantity=agulha.quantidade + quantidade,
-                new_quantity=agulha.quantidade,
-                action='removed',
-                user=request.user
-            )
 
             AgulhasSaidas.objects.create(
                 agulha=agulha,
