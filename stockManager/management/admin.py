@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, CategoriaProduto, updatePo, updateFios, poSaidas, stockMaquinas, fioSaidas, fioEntradas
-from .models import poEntradas, Stock, StockEntradas, StockSaidas, UpdateStock, Agulhas, AgulhasEntradas, AgulhasSaidas, UpdateAgulhas, FioUsado
+from .models import FioTransformacao, FioTransformacaoItem, Fornecedor, Po, Fios, CategoriaProduto, poSaidas, stockMaquinas, fioSaidas, fioEntradas,poEntradas, Stock, StockEntradas, StockSaidas, UpdateStock, Agulhas, AgulhasEntradas, AgulhasSaidas
 
 # Register your models here.
 @admin.register(Fornecedor)
@@ -17,28 +16,11 @@ class PoAdmin(admin.ModelAdmin):
 
 @admin.register(Fios)
 class FiosAdmin(admin.ModelAdmin):
-    list_display = ('size', 'weight', 'quantity', 'material', 'min_stock', 'fornecedor', 'date_added', 'updated_at')
+    list_display = ('size', 'weight', 'quantity', 'material', 'peso_minimo', 'fornecedor', 'date_added', 'updated_at')
     search_fields = ('size', 'material')
     list_filter = ('fornecedor', 'material', 'date_added', 'updated_at')
 
-@admin.register(FioUsado)
-class FioUsadoAdmin(admin.ModelAdmin):
-    list_display = ('fio', 'size', 'weight', 'material', 'quantidade_usada', 'data_uso', 'user')
-    search_fields = ('fio__size', 'material', 'user__username')
-    list_filter = ('data_uso', 'material', 'user')
 
-@admin.register(updateFios)
-class updateFiosAdmin(admin.ModelAdmin):
-    list_display = ('fio', 'previous_quantity', 'new_quantity', 'date_updated', 'user')
-    search_fields = ('fio__size', 'user__username')
-    list_filter = ('date_updated', 'user')
-
-
-@admin.register(updatePo)
-class updatePoAdmin(admin.ModelAdmin):
-    list_display = ('po', 'action', 'previous_quantity', 'new_quantity', 'date_updated', 'user')
-    search_fields = ('po__product', 'user__username')
-    list_filter = ('action', 'user', 'date_updated')
 
 @admin.register(poSaidas)
 class poSaidasAdmin(admin.ModelAdmin):
@@ -54,13 +36,13 @@ class poEntradasAdmin(admin.ModelAdmin):
 
 @admin.register(fioSaidas)
 class fioSaidasAdmin(admin.ModelAdmin):
-    list_display = ('fio', 'quantity_used', 'date_used', 'user')
+    list_display = ('fio', 'weight_used', 'date_used', 'user')
     search_fields = ('fio__size', 'user__username')
     list_filter = ('date_used', 'user')
 
 @admin.register(fioEntradas)
 class fioEntradasAdmin(admin.ModelAdmin):
-    list_display = ('fio', 'quantity_added', 'date_added', 'user')
+    list_display = ('fio', 'weight_added', 'date_added', 'user')
     search_fields = ('fio__size', 'user__username')
     list_filter = ('date_added', 'user')
 
@@ -122,12 +104,6 @@ class AgulhasSaidasAdmin(admin.ModelAdmin):
     list_display = ('agulha', 'quantity_removed', 'date_removed', 'user')
     search_fields = ('agulha__tipo', 'user__username')
     list_filter = ('date_removed', 'user')
-
-@admin.register(UpdateAgulhas)
-class UpdateAgulhasAdmin(admin.ModelAdmin):
-    list_display = ('agulha', 'previous_quantity', 'new_quantity', 'date_updated', 'action', 'user')
-    search_fields = ('agulha__tipo', 'user__username')
-    list_filter = ('action', 'date_updated', 'user')
 
 @admin.register(stockMaquinas)
 class stockMaquinasAdmin(admin.ModelAdmin):

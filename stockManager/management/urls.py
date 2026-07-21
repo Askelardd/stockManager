@@ -19,15 +19,13 @@ urlpatterns = [
 
     # Fios
     path('listar_fios/', views.listar_fios, name='listar_fios'),
-    path('fio/<int:fio_id>/adicionar/', views.adicionarMaisde1Fio, name='adicionar_fio'),
     path('fio/<int:fio_id>/editar/', views.editar_fio, name='editar_fio'),
     path('fio/<int:fio_id>/retirar/', views.retirar_fio, name='retirar_fio'),
     path('fios/trafilar/', views.trafilar_fio, name='trafilar_fio'),
     path('fios/criar-rapido/', views.criar_fio_rapido, name='criar_fio_rapido'),
     path('fios/historico/', views.historico_fios, name='historico_fios'),
     path('novo_fio/', views.novo_fio, name='novo_fio'),
-    path('listar_fiousado/', views.listar_fiousado, name='listar_fiousado'),
-    path('deletar_fiousado/<int:id>/', views.deletar_fiousado, name='deletar_fiousado'),
+    path('adicionar_fio/<int:fio_id>/', views.adicionar_fio, name='adicionar_fio'),
 
     # Trefilagem
     path('trafilar/historico/', views.historico_trefilagens, name='historico_trefilagens'),
